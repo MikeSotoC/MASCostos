@@ -9,13 +9,32 @@ import java.sql.DriverManager
 class SQLiteConnector {
 
     fun openBaseCostos(): Connection {
-        ensureDirectoryFor(DbPaths.BASE_COSTOS)
-        return DriverManager.getConnection(DbPaths.BASE_COSTOS)
+        return openAndBootstrap(
+            jdbcUrl = DbPaths.BASE_COSTOS,
+            seedResource = "/com/uchi/mascostos/data/sqlite/seed/base_catalogo.sql"
+        )
     }
 
     fun openProyectos(): Connection {
-        ensureDirectoryFor(DbPaths.PROYECTOS)
-        return DriverManager.getConnection(DbPaths.PROYECTOS)
+        return openAndBootstrap(
+            jdbcUrl = DbPaths.PROYECTOS,
+            seedResource = "/com/uchi/mascostos/data/sqlite/seed/proyecto_ejemplo.sql"
+        )
+    }
+
+    private fun openAndBootstrap(jdbcUrl: String, seedResource: String): Connection {
+        ensureDirectoryFor(jdbcUrl)
+
+        val dbPath = sqlitePathFromJdbc(jdbcUrl)
+        val shouldSeed = dbPath != null && Files.notExists(dbPath)
+
+        val connection = DriverManager.getConnection(jdbcUrl)
+
+        if (shouldSeed) {
+            executeSqlScript(connection, seedResource)
+        }
+
+        return connection
     }
 
     internal fun ensureDirectoryFor(jdbcUrl: String) {
@@ -24,6 +43,34 @@ class SQLiteConnector {
 
         if (Files.notExists(parent)) {
             Files.createDirectories(parent)
+        }
+    }
+
+    private fun executeSqlScript(connection: Connection, resourcePath: String) {
+        val sql = SQLiteConnector::class.java.getResource(resourcePath)?.readText()
+            ?: error("No se encontró el script de seed: $resourcePath")
+
+        val statements = sql
+            .lineSequence()
+            .filterNot { it.trimStart().startsWith("--") }
+            .joinToString("\n")
+            .split(";")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+
+        connection.autoCommit = false
+        try {
+            statements.forEach { stmt ->
+                connection.createStatement().use { st ->
+                    st.execute(stmt)
+                }
+            }
+            connection.commit()
+        } catch (ex: Exception) {
+            connection.rollback()
+            throw ex
+        } finally {
+            connection.autoCommit = true
         }
     }
 
