@@ -1,0 +1,123 @@
+/* mascostos.css
+   Coloca este archivo en src/main/resources/com/uchi/mascostos/ui/desktop/
+   y cárgalo en tu Application con:
+       scene.stylesheets.add(javaClass.getResource("/com/uchi/mascostos/ui/desktop/mascostos.css").toExternalForm())
+*/
+
+/* ── TOP BAR ─────────────────────────────────────────────────────── */
+.top-bar {
+    -fx-background-color: -color-bg-default;
+}
+
+/* ── TABLES: quitar borde exterior, afinar filas ─────────────────── */
+.table-view {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-border-color: transparent;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: -color-bg-subtle;
+}
+
+.table-view .column-header,
+.table-view .filler {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -color-border-default transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-size: 32px;
+}
+
+.table-view .column-header .label {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-fg-muted;
+    -fx-padding: 0 8 0 8;
+}
+
+.table-row-cell {
+    -fx-cell-size: 32px;
+    -fx-border-color: transparent transparent -color-border-subtle transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: -color-bg-subtle;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: -color-accent-muted;
+}
+
+.table-row-cell:selected .text {
+    -fx-fill: -color-fg-default;
+}
+
+.table-cell {
+    -fx-padding: 0 10 0 10;
+    -fx-font-size: 12px;
+}
+
+/* ── SPLIT PANE: quitar el grip visual ───────────────────────────── */
+.split-pane > .split-pane-divider {
+    -fx-padding: 0 1 0 1;
+    -fx-background-color: -color-border-default;
+}
+
+.split-pane:horizontal > .split-pane-divider {
+    -fx-padding: 0 1 0 1;
+}
+
+/* ── LIST VIEW: filas de proyectos / subpresupuestos ─────────────── */
+.list-view {
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.list-cell {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -color-border-subtle transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 6 12 6 12;
+}
+
+.list-cell:hover {
+    -fx-background-color: -color-bg-subtle;
+}
+
+.list-cell:selected {
+    -fx-background-color: -color-accent-muted;
+    -fx-border-color: -color-accent-emphasis transparent -color-border-subtle transparent;
+    -fx-border-width: 0 0 1 2;
+}
+
+/* ── CARD: sin sombra excesiva ───────────────────────────────────── */
+.card {
+    -fx-background-insets: 0;
+    -fx-effect: null;
+}
+
+/* ── SCROLL BAR: delgada y discreta ──────────────────────────────── */
+.scroll-bar:vertical {
+    -fx-pref-width: 6px;
+}
+
+.scroll-bar:horizontal {
+    -fx-pref-height: 6px;
+}
+
+.scroll-bar .thumb {
+    -fx-background-radius: 3;
+    -fx-background-color: -color-border-default;
+}
+
+.scroll-bar .track,
+.scroll-bar .track-background,
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
