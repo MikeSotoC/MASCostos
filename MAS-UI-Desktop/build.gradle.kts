@@ -8,7 +8,7 @@ group = "com.uchi.mascostos"
 version = "1.0.0"
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 javafx {
