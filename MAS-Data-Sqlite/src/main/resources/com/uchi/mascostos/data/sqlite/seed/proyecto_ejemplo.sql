@@ -63,6 +63,11 @@ SELECT id, '01', 'Obras preliminares', 1, 1
 FROM proyectos
 WHERE codigo = 'PRJ-DEMO-001';
 
+INSERT INTO proyecto_subpresupuestos (proyecto_id, cod_subpresupuesto, nombre, orden, activo)
+SELECT id, '03', 'Concreto simple y armado', 2, 1
+FROM proyectos
+WHERE codigo = 'PRJ-DEMO-001';
+
 INSERT INTO proyecto_partidas (
   proyecto_id, subpresupuesto_id, cod_partida_base, descripcion, unidad,
   metrado, precio_unitario, parcial, rendimiento_mo, rendimiento_eq,
@@ -75,11 +80,32 @@ FROM proyectos p
 JOIN proyecto_subpresupuestos s ON s.proyecto_id = p.id
 WHERE p.codigo = 'PRJ-DEMO-001' AND s.cod_subpresupuesto = '01';
 
+INSERT INTO proyecto_partidas (
+  proyecto_id, subpresupuesto_id, cod_partida_base, descripcion, unidad,
+  metrado, precio_unitario, parcial, rendimiento_mo, rendimiento_eq,
+  horas_hombre, horas_maquina, origen, orden, activo
+)
+SELECT p.id, s.id, '030101', '030101', NULL,
+       15.0, 410.25, 6153.75, 1.10, 0.15,
+       1.10, 0.15, 'BASE', 1, 1
+FROM proyectos p
+JOIN proyecto_subpresupuestos s ON s.proyecto_id = p.id
+WHERE p.codigo = 'PRJ-DEMO-001' AND s.cod_subpresupuesto = '03';
+
 INSERT INTO proyecto_partida_detalle (
   proyecto_partida_id, cod_insumo_base, descripcion, unidad,
   tipo, cuadrilla, cantidad, precio_unitario, parcial, origen, activo
 )
-SELECT pp.id, '020101', '020101', NULL, 1, 1.0, 3.5, 32.75, 114.625, 'BASE', 1
+SELECT pp.id, '030201', '030201', NULL, 2, 1.0, 1.2, 6.5, 7.8, 'BASE', 1
 FROM proyecto_partidas pp
 JOIN proyectos p ON p.id = pp.proyecto_id
 WHERE p.codigo = 'PRJ-DEMO-001' AND pp.cod_partida_base = '010101';
+
+INSERT INTO proyecto_partida_detalle (
+  proyecto_partida_id, cod_insumo_base, descripcion, unidad,
+  tipo, cuadrilla, cantidad, precio_unitario, parcial, origen, activo
+)
+SELECT pp.id, '020101', '020101', NULL, 1, 1.0, 7.0, 32.75, 229.25, 'BASE', 1
+FROM proyecto_partidas pp
+JOIN proyectos p ON p.id = pp.proyecto_id
+WHERE p.codigo = 'PRJ-DEMO-001' AND pp.cod_partida_base = '030101';

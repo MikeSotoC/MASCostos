@@ -21,3 +21,6 @@ En el primer arranque, si el archivo `.db` no existe, `SQLiteConnector` crea el 
 3. Abre la app nuevamente.
 
 Se recrearán con el catálogo y proyecto de ejemplo.
+
+
+El catálogo semilla incluye ahora múltiples subpresupuestos, partidas, insumos y precios para pruebas más realistas de construcción civil.
