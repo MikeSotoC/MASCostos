@@ -152,3 +152,42 @@
 .text-area.summary-area .content {
     -fx-background-color: white;
 }
+
+.workspace-actions {
+    -fx-background-color: #ffffff;
+    -fx-padding: 8 12 8 12;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: #dbe2ea;
+}
+
+.kpi-row {
+    -fx-padding: 0;
+}
+
+.kpi-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dbe2ea;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 10 12 10 12;
+}
+
+.kpi-title {
+    -fx-font-size: 11px;
+    -fx-text-fill: #64748b;
+}
+
+.kpi-value {
+    -fx-font-size: 24px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #0f172a;
+}
+
+.kpi-value.warning {
+    -fx-text-fill: #d97706;
+}
+
+.kpi-value.success {
+    -fx-text-fill: #047857;
+}

@@ -37,6 +37,17 @@ class MainWindowController {
     @FXML
     private lateinit var detailTabs: TabPane
 
+    @FXML
+    private lateinit var chkSoloBrechas: CheckBox
+
+    @FXML
+    private lateinit var lblTotalPartidas: Label
+
+    @FXML
+    private lateinit var lblTotalBrechas: Label
+
+    @FXML
+    private lateinit var lblTotalParcial: Label
     private lateinit var appApi: AppApi
 
     private val partidasTable = TableView<PresupuestoSheetRowDto>()
@@ -61,6 +72,7 @@ class MainWindowController {
     fun initialize() {
         btnNuevoProyecto.setOnAction { mostrarDialogoNuevoProyecto() }
         btnActualizar.setOnAction { loadData(currentProyecto?.id) }
+        chkSoloBrechas.selectedProperty().addListener { _, _, _ -> refreshBrechasView() }
     }
 
     private fun configureShell() {
@@ -339,9 +351,11 @@ class MainWindowController {
 
         partidasData.clear()
         analisisData.clear()
+        brechasData.clear()
         currentProyecto = null
         currentSubpresupuesto = null
         resumenArea.text = ""
+        refreshKpis(emptyList(), emptyList())
 
         val root = TreeItem<BudgetExplorerNode>(BudgetExplorerNode.Root)
 
@@ -394,6 +408,8 @@ class MainWindowController {
                 partidasData.clear()
                 analisisData.clear()
                 brechasData.clear()
+                refreshBrechasView()
+                refreshKpis(emptyList(), emptyList())
 
                 resumenArea.text = buildString {
                     appendLine("Proyecto: ${node.proyecto.nombre}")
@@ -419,6 +435,8 @@ class MainWindowController {
 
                 val brechas = appApi.presupuestoApi.detectarBrechasCatalogo(node.proyecto.id, subId)
                 brechasData.setAll(brechas)
+                refreshBrechasView()
+                refreshKpis(rows, brechas)
 
                 resumenArea.text = buildString {
                     appendLine("Proyecto: ${node.proyecto.nombre}")
@@ -494,6 +512,28 @@ class MainWindowController {
         partidasData[index] = actualizada
         partidasTable.selectionModel.select(index)
         actualizarResumenSheetRow(actualizada)
+    }
+
+    private fun refreshBrechasView() {
+        if (!::chkSoloBrechas.isInitialized) return
+
+        val visible = if (chkSoloBrechas.isSelected) {
+            brechasData.filter { it.requiereNormalizacion || !it.catalogoEncontrado }
+        } else {
+            brechasData
+        }
+
+        brechasTable.items = FXCollections.observableArrayList(visible)
+    }
+
+    private fun refreshKpis(rows: List<PresupuestoSheetRowDto>, brechas: List<PartidaCatalogoBrechaDto>) {
+        val partidas = rows.count { it.tipo == PresupuestoSheetRowType.PARTIDA }
+        val totalParcial = rows.filter { it.tipo == PresupuestoSheetRowType.PARTIDA }.sumOf { it.parcial ?: 0.0 }
+        val totalBrechas = brechas.count { it.requiereNormalizacion || !it.catalogoEncontrado }
+
+        lblTotalPartidas.text = partidas.toString()
+        lblTotalBrechas.text = totalBrechas.toString()
+        lblTotalParcial.text = "%.2f".format(totalParcial)
     }
 
     private fun mostrarDialogoNuevoProyecto() {

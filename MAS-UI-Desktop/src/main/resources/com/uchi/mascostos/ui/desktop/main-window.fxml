@@ -15,7 +15,7 @@
                 <VBox spacing="2.0" HBox.hgrow="ALWAYS">
                     <children>
                         <Label text="MASCostos" styleClass="app-title"/>
-                        <Label text="Control de presupuestos y análisis de partidas" styleClass="app-subtitle"/>
+                        <Label text="Suite de costos y presupuestos de obra (estilo moderno)" styleClass="app-subtitle"/>
                     </children>
                 </VBox>
                 <Button text="Nuevo proyecto" fx:id="btnNuevoProyecto" styleClass="primary-button"/>
@@ -42,6 +42,37 @@
     <center>
         <VBox spacing="10.0" styleClass="workspace-wrapper">
             <children>
+                <HBox spacing="8.0" styleClass="workspace-actions">
+                    <children>
+                        <CheckBox fx:id="chkSoloBrechas" text="Mostrar solo brechas"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label text="Panel de control operativo" styleClass="section-title"/>
+                    </children>
+                </HBox>
+
+                <HBox spacing="10.0" styleClass="kpi-row">
+                    <children>
+                        <VBox spacing="2.0" styleClass="kpi-card" HBox.hgrow="ALWAYS">
+                            <children>
+                                <Label text="Partidas" styleClass="kpi-title"/>
+                                <Label fx:id="lblTotalPartidas" text="0" styleClass="kpi-value"/>
+                            </children>
+                        </VBox>
+                        <VBox spacing="2.0" styleClass="kpi-card" HBox.hgrow="ALWAYS">
+                            <children>
+                                <Label text="Brechas catálogo" styleClass="kpi-title"/>
+                                <Label fx:id="lblTotalBrechas" text="0" styleClass="kpi-value warning"/>
+                            </children>
+                        </VBox>
+                        <VBox spacing="2.0" styleClass="kpi-card" HBox.hgrow="ALWAYS">
+                            <children>
+                                <Label text="Total subpresupuesto (S/.)" styleClass="kpi-title"/>
+                                <Label fx:id="lblTotalParcial" text="0.00" styleClass="kpi-value success"/>
+                            </children>
+                        </VBox>
+                    </children>
+                </HBox>
+
                 <AnchorPane fx:id="sheetContainer" styleClass="panel-pane" VBox.vgrow="ALWAYS"/>
                 <TabPane fx:id="detailTabs" styleClass="panel-pane detail-tabs" VBox.vgrow="ALWAYS"/>
             </children>
