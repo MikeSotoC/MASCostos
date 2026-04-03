@@ -74,14 +74,18 @@ class PresupuestoApiImpl(
         orden = orden
     )
 
-    private fun ProyectoPartida.toDto() = ProyectoPartidaDto(
-        id = id,
-        codPartidaBase = codPartidaBase,
-        descripcion = descripcion,
-        unidad = unidad,
-        metrado = metrado,
-        precioUnitario = precioUnitario,
-        parcial = parcial,
-        orden = orden
-    )
+    private fun ProyectoPartida.toDto(): ProyectoPartidaDto {
+        val partidaCatalogo = codPartidaBase?.let { baseCostosRepository.obtenerPartida(it) }
+
+        return ProyectoPartidaDto(
+            id = id,
+            codPartidaBase = codPartidaBase,
+            descripcion = partidaCatalogo?.descripcion ?: descripcion,
+            unidad = partidaCatalogo?.unidad ?: unidad,
+            metrado = metrado,
+            precioUnitario = precioUnitario,
+            parcial = parcial,
+            orden = orden
+        )
+    }
 }

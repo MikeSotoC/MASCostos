@@ -43,12 +43,15 @@ class PresupuestoSheetApiImpl(
 
         partidas.forEach { partida ->
             val cod = partida.codPartidaBase ?: return@forEach
+            val partidaCatalogo = baseCostosRepository.obtenerPartida(cod)
+            val descripcionPartida = partidaCatalogo?.descripcion ?: partida.descripcion
+            val unidadPartida = partidaCatalogo?.unidad ?: partida.unidad
             val ancestros = baseCostosRepository.listarAncestrosPartida(cod)
 
             val niveles = resolverNiveles(
                 ancestros = ancestros,
                 subpresupuestoNombre = subpresupuestoNombre,
-                descripcionPartida = partida.descripcion
+                descripcionPartida = descripcionPartida
             )
 
             val subtitulo = niveles.first
@@ -95,8 +98,8 @@ class PresupuestoSheetApiImpl(
             rows += PresupuestoSheetRowDto(
                 tipo = PresupuestoSheetRowType.PARTIDA,
                 itemVisual = "%s.%02d.%02d.%02d".format(prefijoSub, subtituloIndex, grupoIndex, partidaIndex),
-                descripcion = partida.descripcion,
-                unidad = partida.unidad,
+                descripcion = descripcionPartida,
+                unidad = unidadPartida,
                 metrado = partida.metrado,
                 precioUnitario = partida.precioUnitario,
                 parcial = partida.parcial,

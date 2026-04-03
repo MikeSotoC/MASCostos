@@ -84,6 +84,51 @@ class BaseCostosRepositorySqlite(
         }
     }
 
+
+    override fun obtenerPartida(codPartida: String): PartidaBase? {
+        val sql = """
+            SELECT
+                p.cod_partida,
+                p.descripcion,
+                u.simbolo,
+                pp.precio1,
+                pp.horas_hombre,
+                pp.horas_maquina,
+                p.rendimiento_mo,
+                p.rendimiento_eq
+            FROM partidas p
+            LEFT JOIN unidades u
+                ON u.cod_unidad = p.cod_unidad
+            LEFT JOIN presupuesto_partida pp
+                ON pp.cod_partida = p.cod_partida
+            WHERE p.cod_partida = ?
+            ORDER BY pp.ano DESC, pp.mes DESC
+            LIMIT 1
+        """.trimIndent()
+
+        connector.openBaseCostos().use { cn ->
+            cn.prepareStatement(sql).use { ps ->
+                ps.setString(1, codPartida)
+                ps.executeQuery().use { rs ->
+                    return if (rs.next()) {
+                        PartidaBase(
+                            codPartida = rs.getString("cod_partida"),
+                            descripcion = rs.getString("descripcion") ?: rs.getString("cod_partida"),
+                            unidad = rs.getString("simbolo"),
+                            precioUnitario = rs.getDouble("precio1").let { if (rs.wasNull()) null else it },
+                            horasHombre = rs.getDouble("horas_hombre").let { if (rs.wasNull()) null else it },
+                            horasMaquina = rs.getDouble("horas_maquina").let { if (rs.wasNull()) null else it },
+                            rendimientoMo = rs.getDouble("rendimiento_mo").let { if (rs.wasNull()) null else it },
+                            rendimientoEq = rs.getDouble("rendimiento_eq").let { if (rs.wasNull()) null else it }
+                        )
+                    } else {
+                        null
+                    }
+                }
+            }
+        }
+    }
+
     override fun listarDetallePartida(codPartida: String): List<DetallePartidaBaseRow> {
         val sql = """
             SELECT
