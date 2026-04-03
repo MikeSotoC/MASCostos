@@ -3,6 +3,7 @@ package com.uchi.mascostos.app.service
 import com.uchi.mascostos.app.api.PresupuestoApi
 import com.uchi.mascostos.app.command.CopiarPartidasBaseCommand
 import com.uchi.mascostos.app.command.CopiarSubpresupuestosBaseCommand
+import com.uchi.mascostos.app.dto.PartidaCatalogoBrechaDto
 import com.uchi.mascostos.app.dto.ProyectoPartidaDto
 import com.uchi.mascostos.app.dto.SubpresupuestoDto
 import com.uchi.mascostos.core.model.ProyectoPartida
@@ -66,6 +67,32 @@ class PresupuestoApiImpl(
 
     override fun listarPartidasProyecto(proyectoId: Long, subpresupuestoId: Long): List<ProyectoPartidaDto> =
         proyectoPresupuestoRepository.listarPartidasProyecto(proyectoId, subpresupuestoId).map { it.toDto() }
+
+    override fun detectarBrechasCatalogo(proyectoId: Long, subpresupuestoId: Long): List<PartidaCatalogoBrechaDto> {
+        val partidas = proyectoPresupuestoRepository.listarPartidasProyecto(proyectoId, subpresupuestoId)
+
+        return partidas.mapNotNull { partida ->
+            val cod = partida.codPartidaBase ?: return@mapNotNull null
+            val catalogo = baseCostosRepository.obtenerPartida(cod)
+
+            val descripcionEsperada = cod
+            val unidadEsperada: String? = null
+
+            val requiereNormalizacion =
+                partida.descripcion != descripcionEsperada || partida.unidad != unidadEsperada
+
+            PartidaCatalogoBrechaDto(
+                proyectoPartidaId = partida.id,
+                codPartidaBase = cod,
+                descripcionProyecto = partida.descripcion,
+                descripcionCatalogo = catalogo?.descripcion,
+                unidadProyecto = partida.unidad,
+                unidadCatalogo = catalogo?.unidad,
+                catalogoEncontrado = catalogo != null,
+                requiereNormalizacion = requiereNormalizacion
+            )
+        }
+    }
 
     private fun ProyectoSubpresupuesto.toDto() = SubpresupuestoDto(
         id = id,
