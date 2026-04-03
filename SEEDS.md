@@ -1,6 +1,6 @@
 # Datos de ejemplo (catálogo + proyecto)
 
-La app ahora inicializa automáticamente bases SQLite nuevas con datos de ejemplo:
+La app inicializa automáticamente bases SQLite nuevas con datos de ejemplo:
 
 - Catálogo base: `base_catalogo.sql`
 - Proyecto demo: `proyecto_ejemplo.sql`
@@ -14,6 +14,21 @@ Ubicación de scripts:
 
 En el primer arranque, si el archivo `.db` no existe, `SQLiteConnector` crea el directorio y ejecuta el script de seed correspondiente.
 
+## Cobertura actual del catálogo semilla
+
+Incluye data de construcción civil para:
+
+- Obras preliminares
+- Movimiento de tierras
+- Concreto simple y armado
+- Encofrado y acero
+- Albañilería y tarrajeo
+- Instalaciones sanitarias
+- Instalaciones eléctricas
+- Acabados
+
+Con partidas, insumos, detalles y precios de ejemplo para pruebas funcionales más realistas.
+
 ## ¿Cómo regenerar en local?
 
 1. Cierra la app.
@@ -21,6 +36,3 @@ En el primer arranque, si el archivo `.db` no existe, `SQLiteConnector` crea el 
 3. Abre la app nuevamente.
 
 Se recrearán con el catálogo y proyecto de ejemplo.
-
-
-El catálogo semilla incluye ahora múltiples subpresupuestos, partidas, insumos y precios para pruebas más realistas de construcción civil.
