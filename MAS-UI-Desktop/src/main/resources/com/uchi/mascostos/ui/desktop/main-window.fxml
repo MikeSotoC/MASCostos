@@ -1,45 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.uchi.mascostos.ui.desktop.ui.MainWindowController">
+            fx:controller="com.uchi.mascostos.ui.desktop.ui.MainWindowController"
+            styleClass="main-window">
 
     <top>
-        <HBox spacing="8.0" BorderPane.alignment="CENTER_LEFT">
+        <HBox spacing="12.0" styleClass="window-toolbar" BorderPane.alignment="CENTER_LEFT">
             <children>
-                <Label text="MASCostos"/>
-                <Button text="Nuevo proyecto" fx:id="btnNuevoProyecto"/>
-                <Button text="Actualizar" fx:id="btnActualizar"/>
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <children>
+                        <Label text="MASCostos" styleClass="app-title"/>
+                        <Label text="Control de presupuestos y análisis de partidas" styleClass="app-subtitle"/>
+                    </children>
+                </VBox>
+                <Button text="Nuevo proyecto" fx:id="btnNuevoProyecto" styleClass="primary-button"/>
+                <Button text="Actualizar" fx:id="btnActualizar" styleClass="secondary-button"/>
             </children>
             <padding>
-                <Insets top="10.0" right="12.0" bottom="10.0" left="12.0"/>
+                <Insets top="12.0" right="14.0" bottom="12.0" left="14.0"/>
             </padding>
         </HBox>
     </top>
 
     <left>
-        <VBox spacing="8.0" prefWidth="280.0">
+        <VBox spacing="10.0" prefWidth="300.0" styleClass="sidebar">
             <children>
-                <Label text="Explorador"/>
-                <TreeView fx:id="explorerTree" VBox.vgrow="ALWAYS"/>
+                <Label text="Explorador de proyectos" styleClass="section-title"/>
+                <TreeView fx:id="explorerTree" VBox.vgrow="ALWAYS" styleClass="explorer-tree"/>
             </children>
             <padding>
-                <Insets top="8.0" right="8.0" bottom="8.0" left="8.0"/>
+                <Insets top="12.0" right="10.0" bottom="12.0" left="10.0"/>
             </padding>
         </VBox>
     </left>
 
     <center>
-        <SplitPane orientation="VERTICAL">
-            <items>
-                <AnchorPane fx:id="sheetContainer"/>
-                <TabPane fx:id="detailTabs"/>
-            </items>
-        </SplitPane>
+        <VBox spacing="10.0" styleClass="workspace-wrapper">
+            <children>
+                <AnchorPane fx:id="sheetContainer" styleClass="panel-pane" VBox.vgrow="ALWAYS"/>
+                <TabPane fx:id="detailTabs" styleClass="panel-pane detail-tabs" VBox.vgrow="ALWAYS"/>
+            </children>
+            <padding>
+                <Insets top="12.0" right="12.0" bottom="12.0" left="0.0"/>
+            </padding>
+        </VBox>
     </center>
 
 </BorderPane>
