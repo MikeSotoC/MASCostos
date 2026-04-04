@@ -1,6 +1,9 @@
 # Datos de ejemplo (catálogo + proyecto)
 
-La app inicializa automáticamente bases SQLite nuevas con datos de ejemplo:
+La app inicializa automáticamente la base SQLite nueva con datos de ejemplo.
+
+Por defecto usa un único archivo: `~/.mascostos/SQLDelphin_basica.sqlite`.
+
 
 - Catálogo base: `base_catalogo.sql`
 - Proyecto demo: `proyecto_ejemplo.sql`
@@ -32,7 +35,7 @@ Con partidas, insumos, detalles y precios de ejemplo para pruebas funcionales m�
 ## ¿Cómo regenerar en local?
 
 1. Cierra la app.
-2. Elimina los archivos DB en `~/.mascostos` (o en la ruta configurada por variables/props).
+2. Elimina `~/.mascostos/SQLDelphin_basica.sqlite` (o la ruta configurada por variables/props).
 3. Abre la app nuevamente.
 
 Se recrearán con el catálogo y proyecto de ejemplo.

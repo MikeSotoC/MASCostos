@@ -10,18 +10,22 @@ object DbPaths {
     private const val BASE_COSTOS_PROP = "mascostos.db.base"
     private const val PROYECTOS_PROP = "mascostos.db.proyectos"
 
+    private const val DEFAULT_DELPHIN_SQLITE = "SQLDelphin_basica.sqlite"
+
     val BASE_COSTOS: String
         get() = jdbcSqliteUrl(
             configuredPath = System.getenv(BASE_COSTOS_ENV)
                 ?: System.getProperty(BASE_COSTOS_PROP),
-            defaultFileName = "database.db"
+            defaultFileName = DEFAULT_DELPHIN_SQLITE
         )
 
     val PROYECTOS: String
         get() = jdbcSqliteUrl(
             configuredPath = System.getenv(PROYECTOS_ENV)
-                ?: System.getProperty(PROYECTOS_PROP),
-            defaultFileName = "proyectos.db"
+                ?: System.getProperty(PROYECTOS_PROP)
+                ?: System.getenv(BASE_COSTOS_ENV)
+                ?: System.getProperty(BASE_COSTOS_PROP),
+            defaultFileName = DEFAULT_DELPHIN_SQLITE
         )
 
     private fun jdbcSqliteUrl(configuredPath: String?, defaultFileName: String): String {
