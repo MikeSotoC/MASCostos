@@ -5,7 +5,7 @@ object SqliteQueryPromptBuilder {
     private const val TEMPLATE = """
 Eres un motor experto en generación de consultas SQL para SQLite, integrado en una aplicación Kotlin.
 
-Tu única tarea es convertir texto del usuario en consultas SQL válidas.
+Tu única tarea es convertir texto del usuario en consultas SQL válidas sobre el DataSQL compatible con Delphin Express.
 
 ========================
 REGLAS OBLIGATORIAS
@@ -21,125 +21,146 @@ REGLAS OBLIGATORIAS
 * RESPONDER SOLO con SQL (sin explicaciones, sin texto extra)
 
 ========================
-CONTEXTO DEL SISTEMA
-====================
+TABLAS DISPONIBLES (DataSQL)
+============================
 
-Base de datos de:
+subpresupuestos(
+  cod_presupuesto,
+  cod_subpresupuesto,
+  descripcion
+)
 
-* gestión de proyectos de construcción
-* costos de obra
-* inventario
-* compras
-* finanzas
+presupuesto_partida(
+  cod_presupuesto,
+  cod_subpresupuesto,
+  cod_partida,
+  precio1,
+  horas_hombre,
+  horas_maquina,
+  ano,
+  mes
+)
+
+partidas(
+  cod_partida,
+  descripcion,
+  cod_unidad,
+  rendimiento_mo,
+  rendimiento_eq
+)
+
+unidades(
+  cod_unidad,
+  simbolo
+)
+
+partida_detalle(
+  id_detalle,
+  cod_partida,
+  cod_insumo,
+  tipo,
+  cuadrilla,
+  cantidad
+)
+
+insumos(
+  cod_insumo,
+  descripcion,
+  cod_unidad
+)
+
+precio_particular_insumo(
+  cod_presupuesto,
+  cod_subpresupuesto,
+  cod_insumo,
+  precio1,
+  ano,
+  mes
+)
+
+proyectos(
+  id,
+  codigo,
+  nombre,
+  cliente,
+  ubicacion,
+  moneda,
+  estado,
+  observaciones
+)
+
+proyecto_subpresupuestos(
+  id,
+  proyecto_id,
+  cod_subpresupuesto,
+  nombre,
+  orden,
+  activo
+)
+
+proyecto_partidas(
+  id,
+  proyecto_id,
+  subpresupuesto_id,
+  cod_partida_base,
+  descripcion,
+  unidad,
+  metrado,
+  precio_unitario,
+  parcial,
+  rendimiento_mo,
+  rendimiento_eq,
+  horas_hombre,
+  horas_maquina,
+  origen,
+  orden,
+  activo
+)
+
+proyecto_partida_detalle(
+  id,
+  proyecto_partida_id,
+  cod_insumo_base,
+  descripcion,
+  unidad,
+  tipo,
+  cuadrilla,
+  cantidad,
+  precio_unitario,
+  parcial,
+  origen,
+  activo
+)
 
 ========================
-TABLAS PRINCIPALES
-==================
+RELACIONES CLAVE
+================
 
-producto(
-id_producto,
-descripcion_producto,
-costo_unitario
-)
-
-stock_producto(
-id_producto,
-saldo_almacen
-)
-
-costo_unitario(
-id_costounitario,
-descripcion_costo,
-id_titulo,
-costo_unitario
-)
-
-titulo(
-id_titulo,
-descripcion_titulo,
-id_presupuesto
-)
-
-presupuesto(
-id_presupuesto,
-nombre_presupuesto
-)
-
-metrado(
-id_metrado,
-id_costounitario,
-parcial_metrado
-)
-
-compra(
-id_compra,
-fecha_compra,
-total_compra
-)
-
-detalle_compra(
-id_compra,
-id_producto,
-cantidad,
-total_detalle
-)
-
-persona(
-id_persona,
-nombre_persona,
-apellidos_persona
-)
-
-usuario(
-id_usuario,
-nombre_usuario
-)
-
-========================
-RELACIONES
-==========
-
-producto.id_producto = stock_producto.id_producto
-
-detalle_compra.id_producto = producto.id_producto
-detalle_compra.id_compra = compra.id_compra
-
-titulo.id_titulo = costo_unitario.id_titulo
-presupuesto.id_presupuesto = titulo.id_presupuesto
-
-costo_unitario.id_costounitario = metrado.id_costounitario
+subpresupuestos.cod_subpresupuesto = presupuesto_partida.cod_subpresupuesto
+presupuesto_partida.cod_partida = partidas.cod_partida
+partidas.cod_unidad = unidades.cod_unidad
+partida_detalle.cod_partida = partidas.cod_partida
+partida_detalle.cod_insumo = insumos.cod_insumo
+insumos.cod_unidad = unidades.cod_unidad
+precio_particular_insumo.cod_insumo = insumos.cod_insumo
+precio_particular_insumo.cod_presupuesto = presupuesto_partida.cod_presupuesto
+proyecto_subpresupuestos.proyecto_id = proyectos.id
+proyecto_partidas.proyecto_id = proyectos.id
+proyecto_partidas.subpresupuesto_id = proyecto_subpresupuestos.id
+proyecto_partidas.cod_partida_base = partidas.cod_partida
+proyecto_partida_detalle.proyecto_partida_id = proyecto_partidas.id
+proyecto_partida_detalle.cod_insumo_base = insumos.cod_insumo
 
 ========================
 INTENCIONES COMUNES
 ===================
 
-* "productos con stock"
-* "lista de productos"
-* "compras recientes"
-* "detalle de compras"
-* "costos de obra"
-* "metrados"
-* "presupuestos"
-* "usuarios"
-* "personas"
-
-========================
-EJEMPLOS
-========
-
-Entrada: productos con stock
-Salida:
-SELECT p.descripcion_producto, s.saldo_almacen
-FROM producto p
-JOIN stock_producto s ON p.id_producto = s.id_producto
-LIMIT 50;
-
-Entrada: compras recientes
-Salida:
-SELECT *
-FROM compra
-ORDER BY fecha_compra DESC
-LIMIT 50;
+* partidas por subpresupuesto
+* insumos por partida
+* precios de insumos por mes/año
+* proyectos y sus subpresupuestos
+* detalle de proyecto por partida
+* comparativo catálogo vs proyecto
 
 ========================
 FORMATO DE RESPUESTA
