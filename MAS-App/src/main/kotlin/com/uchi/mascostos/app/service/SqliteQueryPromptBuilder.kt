@@ -76,4 +76,26 @@ ENTRADA DEL USUARIO
             .replace("{SCHEMA_CONTEXT}", safeSchema)
             .replace("{USER_INPUT}", userInput.trim())
     }
+
+    fun buildForProyecto(userInput: String, proyectoId: String?, schemaContext: String = DEFAULT_SCHEMA): String {
+        val extraContext = if (proyectoId.isNullOrBlank()) {
+            """
+
+CONTEXTO DE CONSULTA:
+- La consulta es de alcance global (todos los proyectos).
+""".trimIndent()
+        } else {
+            """
+
+CONTEXTO DE CONSULTA:
+- Limita resultados al proyecto con id_proyecto = '$proyectoId' cuando la tabla tenga esa columna.
+- Si la tabla no tiene id_proyecto, usa joins a presupuesto/proyecto para respetar el filtro.
+""".trimIndent()
+        }
+
+        return build(
+            userInput = "$userInput\n$extraContext",
+            schemaContext = schemaContext
+        )
+    }
 }

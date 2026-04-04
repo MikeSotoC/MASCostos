@@ -23,4 +23,15 @@ class SqliteQueryPromptBuilderTest {
         assertTrue(prompt.contains("listar demo"))
         assertTrue(prompt.contains(customSchema))
     }
+
+    @Test
+    fun `aplica contexto de proyecto cuando se envía id_proyecto`() {
+        val prompt = SqliteQueryPromptBuilder.buildForProyecto(
+            userInput = "mostrar costos",
+            proyectoId = "PR-001"
+        )
+
+        assertTrue(prompt.contains("mostrar costos"))
+        assertTrue(prompt.contains("id_proyecto = 'PR-001'"))
+    }
 }
