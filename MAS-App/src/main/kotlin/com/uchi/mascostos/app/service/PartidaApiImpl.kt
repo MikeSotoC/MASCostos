@@ -38,8 +38,8 @@ class PartidaApiImpl(
             proyectoPresupuestoRepository.crearDetalleProyectoPartida(
                 proyectoPartidaId = partida.id,
                 codInsumoBase = row.codInsumo,
-                descripcion = row.descripcion,
-                unidad = row.unidad,
+                descripcion = row.codInsumo ?: row.descripcion,
+                unidad = null,
                 tipo = row.tipo,
                 cuadrilla = row.cuadrilla,
                 cantidad = row.cantidad,
@@ -82,24 +82,32 @@ class PartidaApiImpl(
         return partida.toDto()
     }
 
-    private fun ProyectoPartida.toDto() = ProyectoPartidaDto(
-        id = id,
-        codPartidaBase = codPartidaBase,
-        descripcion = descripcion,
-        unidad = unidad,
-        metrado = metrado,
-        precioUnitario = precioUnitario,
-        parcial = parcial,
-        orden = orden
-    )
+    private fun ProyectoPartida.toDto(): ProyectoPartidaDto {
+        val partidaCatalogo = codPartidaBase?.let { baseCostosRepository.obtenerPartida(it) }
 
-    private fun ProyectoPartidaDetalle.toDto() = ProyectoPartidaDetalleDto(
-        id = id,
-        codInsumoBase = codInsumoBase,
-        descripcion = descripcion,
-        unidad = unidad,
-        cantidad = cantidad,
-        precioUnitario = precioUnitario,
-        parcial = parcial
-    )
+        return ProyectoPartidaDto(
+            id = id,
+            codPartidaBase = codPartidaBase,
+            descripcion = partidaCatalogo?.descripcion ?: descripcion,
+            unidad = partidaCatalogo?.unidad ?: unidad,
+            metrado = metrado,
+            precioUnitario = precioUnitario,
+            parcial = parcial,
+            orden = orden
+        )
+    }
+
+    private fun ProyectoPartidaDetalle.toDto(): ProyectoPartidaDetalleDto {
+        val insumoCatalogo = codInsumoBase?.let { baseCostosRepository.obtenerInsumo(it) }
+
+        return ProyectoPartidaDetalleDto(
+            id = id,
+            codInsumoBase = codInsumoBase,
+            descripcion = insumoCatalogo?.descripcion ?: descripcion,
+            unidad = insumoCatalogo?.unidad ?: unidad,
+            cantidad = cantidad,
+            precioUnitario = precioUnitario,
+            parcial = parcial
+        )
+    }
 }

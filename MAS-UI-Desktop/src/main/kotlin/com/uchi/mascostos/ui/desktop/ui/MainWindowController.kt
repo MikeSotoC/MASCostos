@@ -2,6 +2,7 @@ package com.uchi.mascostos.ui.desktop.ui
 
 import com.uchi.mascostos.app.api.AppApi
 import com.uchi.mascostos.app.command.CrearProyectoCommand
+import com.uchi.mascostos.app.dto.PartidaCatalogoBrechaDto
 import com.uchi.mascostos.app.dto.PresupuestoSheetRowDto
 import com.uchi.mascostos.app.dto.PresupuestoSheetRowType
 import com.uchi.mascostos.app.dto.ProyectoDto
@@ -36,14 +37,27 @@ class MainWindowController {
     @FXML
     private lateinit var detailTabs: TabPane
 
+    @FXML
+    private lateinit var chkSoloBrechas: CheckBox
+
+    @FXML
+    private lateinit var lblTotalPartidas: Label
+
+    @FXML
+    private lateinit var lblTotalBrechas: Label
+
+    @FXML
+    private lateinit var lblTotalParcial: Label
     private lateinit var appApi: AppApi
 
     private val partidasTable = TableView<PresupuestoSheetRowDto>()
     private val analisisTable = TableView<ProyectoPartidaDetalleDto>()
+    private val brechasTable = TableView<PartidaCatalogoBrechaDto>()
     private val resumenArea = TextArea()
 
     private val partidasData: ObservableList<PresupuestoSheetRowDto> = FXCollections.observableArrayList()
     private val analisisData: ObservableList<ProyectoPartidaDetalleDto> = FXCollections.observableArrayList()
+    private val brechasData: ObservableList<PartidaCatalogoBrechaDto> = FXCollections.observableArrayList()
 
     private var currentProyecto: ProyectoDto? = null
     private var currentSubpresupuesto: SubpresupuestoDto? = null
@@ -58,12 +72,14 @@ class MainWindowController {
     fun initialize() {
         btnNuevoProyecto.setOnAction { mostrarDialogoNuevoProyecto() }
         btnActualizar.setOnAction { loadData(currentProyecto?.id) }
+        chkSoloBrechas.selectedProperty().addListener { _, _, _ -> refreshBrechasView() }
     }
 
     private fun configureShell() {
         buildExplorer()
         buildPartidasTable()
         buildAnalisisTable()
+        buildBrechasTable()
         buildDetailTabs()
 
         sheetContainer.children.setAll(partidasTable)
@@ -272,6 +288,42 @@ class MainWindowController {
         resumenArea.styleClass.add("summary-area")
     }
 
+    private fun buildBrechasTable() {
+        brechasTable.items = brechasData
+        brechasTable.isEditable = false
+        brechasTable.columnResizePolicy = TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        brechasTable.styleClass.add("sheet-table")
+
+        val colCodigo = TableColumn<PartidaCatalogoBrechaDto, String>("Código").apply {
+            setCellValueFactory { SimpleStringProperty(it.value.codPartidaBase) }
+            prefWidth = 120.0
+        }
+
+        val colCatalogo = TableColumn<PartidaCatalogoBrechaDto, String>("Catálogo").apply {
+            setCellValueFactory { SimpleStringProperty(it.value.descripcionCatalogo ?: "(sin catálogo)") }
+            prefWidth = 320.0
+        }
+
+        val colProyecto = TableColumn<PartidaCatalogoBrechaDto, String>("Proyecto (técnico)").apply {
+            setCellValueFactory { SimpleStringProperty(it.value.descripcionProyecto) }
+            prefWidth = 200.0
+        }
+
+        val colEstado = TableColumn<PartidaCatalogoBrechaDto, String>("Estado").apply {
+            setCellValueFactory { cell ->
+                val value = when {
+                    !cell.value.catalogoEncontrado -> "SIN CATALOGO"
+                    cell.value.requiereNormalizacion -> "REQUIERE NORMALIZACION"
+                    else -> "OK"
+                }
+                SimpleStringProperty(value)
+            }
+            prefWidth = 180.0
+        }
+
+        brechasTable.columns.setAll(colCodigo, colCatalogo, colProyecto, colEstado)
+    }
+
     private fun buildDetailTabs() {
         detailTabs.tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
         detailTabs.tabs.clear()
@@ -286,7 +338,12 @@ class MainWindowController {
             VBox.setVgrow(resumenArea, Priority.ALWAYS)
         }
 
-        detailTabs.tabs.addAll(analisisTab, resumenTab)
+        val brechasTab = Tab("Brechas catálogo")
+        brechasTab.content = VBox(brechasTable).apply {
+            VBox.setVgrow(brechasTable, Priority.ALWAYS)
+        }
+
+        detailTabs.tabs.addAll(analisisTab, brechasTab, resumenTab)
     }
 
     private fun loadData(selectProjectId: Long? = null) {
@@ -294,9 +351,11 @@ class MainWindowController {
 
         partidasData.clear()
         analisisData.clear()
+        brechasData.clear()
         currentProyecto = null
         currentSubpresupuesto = null
         resumenArea.text = ""
+        refreshKpis(emptyList(), emptyList())
 
         val root = TreeItem<BudgetExplorerNode>(BudgetExplorerNode.Root)
 
@@ -348,6 +407,9 @@ class MainWindowController {
                 currentSubpresupuesto = null
                 partidasData.clear()
                 analisisData.clear()
+                brechasData.clear()
+                refreshBrechasView()
+                refreshKpis(emptyList(), emptyList())
 
                 resumenArea.text = buildString {
                     appendLine("Proyecto: ${node.proyecto.nombre}")
@@ -371,11 +433,17 @@ class MainWindowController {
                 )
                 partidasData.setAll(rows)
 
+                val brechas = appApi.presupuestoApi.detectarBrechasCatalogo(node.proyecto.id, subId)
+                brechasData.setAll(brechas)
+                refreshBrechasView()
+                refreshKpis(rows, brechas)
+
                 resumenArea.text = buildString {
                     appendLine("Proyecto: ${node.proyecto.nombre}")
                     appendLine("Subpresupuesto: ${node.subpresupuesto.nombre}")
                     appendLine("Código: ${node.subpresupuesto.codSubpresupuesto ?: "-"}")
                     appendLine("Partidas: ${rows.count { it.tipo == PresupuestoSheetRowType.PARTIDA }}")
+                    appendLine("Brechas catálogo: ${brechas.count { it.requiereNormalizacion || !it.catalogoEncontrado }}")
                 }
 
                 if (rows.isNotEmpty()) {
@@ -444,6 +512,28 @@ class MainWindowController {
         partidasData[index] = actualizada
         partidasTable.selectionModel.select(index)
         actualizarResumenSheetRow(actualizada)
+    }
+
+    private fun refreshBrechasView() {
+        if (!::chkSoloBrechas.isInitialized) return
+
+        val visible = if (chkSoloBrechas.isSelected) {
+            brechasData.filter { it.requiereNormalizacion || !it.catalogoEncontrado }
+        } else {
+            brechasData
+        }
+
+        brechasTable.items = FXCollections.observableArrayList(visible)
+    }
+
+    private fun refreshKpis(rows: List<PresupuestoSheetRowDto>, brechas: List<PartidaCatalogoBrechaDto>) {
+        val partidas = rows.count { it.tipo == PresupuestoSheetRowType.PARTIDA }
+        val totalParcial = rows.filter { it.tipo == PresupuestoSheetRowType.PARTIDA }.sumOf { it.parcial ?: 0.0 }
+        val totalBrechas = brechas.count { it.requiereNormalizacion || !it.catalogoEncontrado }
+
+        lblTotalPartidas.text = partidas.toString()
+        lblTotalBrechas.text = totalBrechas.toString()
+        lblTotalParcial.text = "%.2f".format(totalParcial)
     }
 
     private fun mostrarDialogoNuevoProyecto() {
