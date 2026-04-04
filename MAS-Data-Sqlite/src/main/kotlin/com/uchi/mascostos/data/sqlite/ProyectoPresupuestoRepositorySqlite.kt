@@ -4,21 +4,53 @@ import com.uchi.mascostos.core.model.ProyectoPartida
 import com.uchi.mascostos.core.model.ProyectoPartidaDetalle
 import com.uchi.mascostos.core.model.ProyectoSubpresupuesto
 import com.uchi.mascostos.core.ports.ProyectoPresupuestoRepository
+import java.sql.Connection
 import java.sql.ResultSet
+import kotlin.math.abs
 
 class ProyectoPresupuestoRepositorySqlite(
     private val connector: SQLiteConnector
 ) : ProyectoPresupuestoRepository {
 
     override fun listarSubpresupuestosProyecto(proyectoId: Long): List<ProyectoSubpresupuesto> {
-        val sql = """
-            SELECT id, proyecto_id, cod_subpresupuesto, nombre, orden, activo
-            FROM proyecto_subpresupuestos
-            WHERE proyecto_id = ?
-            ORDER BY orden, id
-        """.trimIndent()
-
         connector.openProyectos().use { cn ->
+            if (canUseModernSchema(cn)) {
+                val sql = """
+                    SELECT t.id_titulo, t.descripcion_titulo, t.posicion_titulo
+                    FROM titulo t
+                    JOIN presupuesto p ON p.id_presupuesto = t.id_presupuesto
+                    WHERE p.id_proyecto = ?
+                      AND (t.id_titulopadre IS NULL OR TRIM(t.id_titulopadre) = '')
+                    ORDER BY t.posicion_titulo, t.id_titulo
+                """.trimIndent()
+
+                cn.prepareStatement(sql).use { ps ->
+                    ps.setString(1, proyectoId.toString())
+                    ps.executeQuery().use { rs ->
+                        val items = mutableListOf<ProyectoSubpresupuesto>()
+                        while (rs.next()) {
+                            val tituloId = rs.getString("id_titulo")
+                            items += ProyectoSubpresupuesto(
+                                id = stableId(tituloId),
+                                proyectoId = proyectoId,
+                                codSubpresupuesto = tituloId,
+                                nombre = rs.getString("descripcion_titulo"),
+                                orden = rs.getInt("posicion_titulo"),
+                                activo = true
+                            )
+                        }
+                        return items
+                    }
+                }
+            }
+
+            val sql = """
+                SELECT id, proyecto_id, cod_subpresupuesto, nombre, orden, activo
+                FROM proyecto_subpresupuestos
+                WHERE proyecto_id = ?
+                ORDER BY orden, id
+            """.trimIndent()
+
             cn.prepareStatement(sql).use { ps ->
                 ps.setLong(1, proyectoId)
                 ps.executeQuery().use { rs ->
@@ -67,15 +99,62 @@ class ProyectoPresupuestoRepositorySqlite(
         proyectoId: Long,
         subpresupuestoId: Long
     ): List<ProyectoPartida> {
-        val sql = """
-            SELECT *
-            FROM proyecto_partidas
-            WHERE proyecto_id = ?
-              AND subpresupuesto_id = ?
-            ORDER BY orden, id
-        """.trimIndent()
-
         connector.openProyectos().use { cn ->
+            if (canUseModernSchema(cn)) {
+                val tituloId = resolveTituloId(cn, proyectoId, subpresupuestoId)
+                if (tituloId == null) return emptyList()
+
+                val sql = """
+                    SELECT cu.id_costounitario,
+                           cu.descripcion_costo,
+                           COALESCE(u.abreviatura_unidad, u.descripcion_unidad) AS unidad,
+                           COALESCE(cu.cantidad, 0) AS metrado,
+                           COALESCE(cu.costo_unitario, 0) AS precio_unitario,
+                           COALESCE(cu.parcial_costo, 0) AS parcial,
+                           COALESCE(cu.posicion_costo, 0) AS orden
+                    FROM costo_unitario cu
+                    LEFT JOIN unidad u ON u.id_unidad = cu.id_unidad
+                    WHERE cu.id_titulo = ?
+                    ORDER BY cu.posicion_costo, cu.id_costounitario
+                """.trimIndent()
+
+                cn.prepareStatement(sql).use { ps ->
+                    ps.setString(1, tituloId)
+                    ps.executeQuery().use { rs ->
+                        val items = mutableListOf<ProyectoPartida>()
+                        while (rs.next()) {
+                            items += ProyectoPartida(
+                                id = stableId(rs.getString("id_costounitario")),
+                                proyectoId = proyectoId,
+                                subpresupuestoId = subpresupuestoId,
+                                codPartidaBase = rs.getString("id_costounitario"),
+                                descripcion = rs.getString("descripcion_costo"),
+                                unidad = rs.getString("unidad"),
+                                metrado = rs.getDouble("metrado"),
+                                precioUnitario = rs.getDouble("precio_unitario"),
+                                parcial = rs.getDouble("parcial"),
+                                rendimientoMo = null,
+                                rendimientoEq = null,
+                                horasHombre = null,
+                                horasMaquina = null,
+                                origen = "SQLDELPHIN",
+                                orden = rs.getInt("orden"),
+                                activo = true
+                            )
+                        }
+                        return items
+                    }
+                }
+            }
+
+            val sql = """
+                SELECT *
+                FROM proyecto_partidas
+                WHERE proyecto_id = ?
+                  AND subpresupuesto_id = ?
+                ORDER BY orden, id
+            """.trimIndent()
+
             cn.prepareStatement(sql).use { ps ->
                 ps.setLong(1, proyectoId)
                 ps.setLong(2, subpresupuestoId)
@@ -177,13 +256,29 @@ class ProyectoPresupuestoRepositorySqlite(
         metrado: Double,
         parcial: Double
     ) {
-        val sql = """
-            UPDATE proyecto_partidas
-            SET metrado = ?, parcial = ?
-            WHERE id = ?
-        """.trimIndent()
-
         connector.openProyectos().use { cn ->
+            if (canUseModernSchema(cn)) {
+                val codigo = resolveCostoUnitarioId(cn, proyectoPartidaId) ?: return
+                val sqlModern = """
+                    UPDATE costo_unitario
+                    SET cantidad = ?, parcial_costo = ?
+                    WHERE id_costounitario = ?
+                """.trimIndent()
+                cn.prepareStatement(sqlModern).use { ps ->
+                    ps.setDouble(1, metrado)
+                    ps.setDouble(2, parcial)
+                    ps.setString(3, codigo)
+                    ps.executeUpdate()
+                }
+                return
+            }
+
+            val sql = """
+                UPDATE proyecto_partidas
+                SET metrado = ?, parcial = ?
+                WHERE id = ?
+            """.trimIndent()
+
             cn.prepareStatement(sql).use { ps ->
                 ps.setDouble(1, metrado)
                 ps.setDouble(2, parcial)
@@ -197,13 +292,28 @@ class ProyectoPresupuestoRepositorySqlite(
         proyectoPartidaId: Long,
         precioUnitario: Double
     ) {
-        val sql = """
-            UPDATE proyecto_partidas
-            SET precio_unitario = ?
-            WHERE id = ?
-        """.trimIndent()
-
         connector.openProyectos().use { cn ->
+            if (canUseModernSchema(cn)) {
+                val codigo = resolveCostoUnitarioId(cn, proyectoPartidaId) ?: return
+                val sqlModern = """
+                    UPDATE costo_unitario
+                    SET costo_unitario = ?
+                    WHERE id_costounitario = ?
+                """.trimIndent()
+                cn.prepareStatement(sqlModern).use { ps ->
+                    ps.setDouble(1, precioUnitario)
+                    ps.setString(2, codigo)
+                    ps.executeUpdate()
+                }
+                return
+            }
+
+            val sql = """
+                UPDATE proyecto_partidas
+                SET precio_unitario = ?
+                WHERE id = ?
+            """.trimIndent()
+
             cn.prepareStatement(sql).use { ps ->
                 ps.setDouble(1, precioUnitario)
                 ps.setLong(2, proyectoPartidaId)
@@ -355,5 +465,54 @@ class ProyectoPresupuestoRepositorySqlite(
             orden = rs.getInt("orden"),
             activo = rs.getInt("activo") == 1
         )
+    }
+
+    private fun canUseModernSchema(connection: Connection): Boolean {
+        return hasTable(connection, "presupuesto") && hasTable(connection, "titulo") && hasTable(connection, "costo_unitario")
+    }
+
+    private fun hasTable(connection: Connection, tableName: String): Boolean {
+        val sql = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND lower(name) = lower(?) LIMIT 1"
+        connection.prepareStatement(sql).use { ps ->
+            ps.setString(1, tableName)
+            ps.executeQuery().use { rs -> return rs.next() }
+        }
+    }
+
+    private fun stableId(value: String?): Long {
+        return abs((value ?: "").hashCode().toLong())
+    }
+
+    private fun resolveTituloId(connection: Connection, proyectoId: Long, syntheticId: Long): String? {
+        val sql = """
+            SELECT t.id_titulo
+            FROM titulo t
+            JOIN presupuesto p ON p.id_presupuesto = t.id_presupuesto
+            WHERE p.id_proyecto = ?
+              AND (t.id_titulopadre IS NULL OR TRIM(t.id_titulopadre) = '')
+        """.trimIndent()
+        connection.prepareStatement(sql).use { ps ->
+            ps.setString(1, proyectoId.toString())
+            ps.executeQuery().use { rs ->
+                while (rs.next()) {
+                    val id = rs.getString("id_titulo")
+                    if (stableId(id) == syntheticId) return id
+                }
+            }
+        }
+        return null
+    }
+
+    private fun resolveCostoUnitarioId(connection: Connection, syntheticId: Long): String? {
+        val sql = "SELECT id_costounitario FROM costo_unitario"
+        connection.prepareStatement(sql).use { ps ->
+            ps.executeQuery().use { rs ->
+                while (rs.next()) {
+                    val id = rs.getString("id_costounitario")
+                    if (stableId(id) == syntheticId) return id
+                }
+            }
+        }
+        return null
     }
 }
