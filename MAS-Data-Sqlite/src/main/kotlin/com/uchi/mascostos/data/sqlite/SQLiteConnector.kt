@@ -8,16 +8,26 @@ import java.sql.DriverManager
 
 class SQLiteConnector {
 
+    private val localBootstrapSql = Paths.get("SQLDelphin_basica.sql").toAbsolutePath()
+
     fun openBaseCostos(): Connection {
+        return openBaseCostos(DbPaths.BASE_COSTOS)
+    }
+
+    internal fun openBaseCostos(jdbcUrl: String): Connection {
         return openAndBootstrap(
-            jdbcUrl = DbPaths.BASE_COSTOS,
+            jdbcUrl = jdbcUrl,
             seedResource = "/com/uchi/mascostos/data/sqlite/seed/base_catalogo.sql"
         )
     }
 
     fun openProyectos(): Connection {
+        return openProyectos(DbPaths.PROYECTOS)
+    }
+
+    internal fun openProyectos(jdbcUrl: String): Connection {
         return openAndBootstrap(
-            jdbcUrl = DbPaths.PROYECTOS,
+            jdbcUrl = jdbcUrl,
             seedResource = "/com/uchi/mascostos/data/sqlite/seed/proyecto_ejemplo.sql"
         )
     }
@@ -31,7 +41,11 @@ class SQLiteConnector {
         val connection = DriverManager.getConnection(jdbcUrl)
 
         if (shouldSeed) {
-            executeSqlScript(connection, seedResource)
+            if (Files.exists(localBootstrapSql)) {
+                executeSqlFile(connection, localBootstrapSql)
+            } else {
+                executeSqlScript(connection, seedResource)
+            }
         }
 
         return connection
@@ -50,6 +64,15 @@ class SQLiteConnector {
         val sql = SQLiteConnector::class.java.getResource(resourcePath)?.readText()
             ?: error("No se encontró el script de seed: $resourcePath")
 
+        executeStatements(connection, sql)
+    }
+
+    private fun executeSqlFile(connection: Connection, path: Path) {
+        val sql = Files.readString(path)
+        executeStatements(connection, sql)
+    }
+
+    private fun executeStatements(connection: Connection, sql: String) {
         val statements = sql
             .lineSequence()
             .filterNot { it.trimStart().startsWith("--") }

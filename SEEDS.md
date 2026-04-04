@@ -2,6 +2,8 @@
 
 La app inicializa automáticamente la base SQLite nueva con datos de ejemplo.
 
+Si existe `SQLDelphin_basica.sql` en el directorio de trabajo del proyecto, ese archivo se usa primero como bootstrap.
+
 Por defecto usa un único archivo: `~/.mascostos/SQLDelphin_basica.sqlite`.
 
 
