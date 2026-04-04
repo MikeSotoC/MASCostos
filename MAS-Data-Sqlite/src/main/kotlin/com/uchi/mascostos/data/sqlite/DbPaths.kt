@@ -37,6 +37,11 @@ object DbPaths {
     }
 
     private fun defaultDbPath(defaultFileName: String): String {
+        val localDb = Paths.get(defaultFileName).toAbsolutePath()
+        if (localDb.toFile().exists()) {
+            return localDb.toString()
+        }
+
         return Paths.get(System.getProperty("user.home"), ".mascostos", defaultFileName).toString()
     }
 }

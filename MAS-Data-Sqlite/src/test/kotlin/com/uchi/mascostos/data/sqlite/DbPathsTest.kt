@@ -1,5 +1,6 @@
 package com.uchi.mascostos.data.sqlite
 
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -58,6 +59,30 @@ class DbPathsTest {
         } finally {
             restoreProperty("mascostos.db.base", originalBase)
             restoreProperty("mascostos.db.proyectos", originalProy)
+        }
+    }
+
+    @Test
+    fun `prioriza SQLDelphin local del proyecto cuando existe`() {
+        val originalBase = System.getProperty("mascostos.db.base")
+        val originalProy = System.getProperty("mascostos.db.proyectos")
+        val originalUserDir = System.getProperty("user.dir")
+
+        val tempDir = Files.createTempDirectory("mascostos-local-db")
+        val localDb = tempDir.resolve("SQLDelphin_basica.sqlite")
+        Files.createFile(localDb)
+
+        try {
+            System.clearProperty("mascostos.db.base")
+            System.clearProperty("mascostos.db.proyectos")
+            System.setProperty("user.dir", tempDir.toString())
+
+            assertEquals("jdbc:sqlite:${localDb.toAbsolutePath()}", DbPaths.BASE_COSTOS)
+            assertEquals("jdbc:sqlite:${localDb.toAbsolutePath()}", DbPaths.PROYECTOS)
+        } finally {
+            restoreProperty("mascostos.db.base", originalBase)
+            restoreProperty("mascostos.db.proyectos", originalProy)
+            restoreProperty("user.dir", originalUserDir)
         }
     }
 
