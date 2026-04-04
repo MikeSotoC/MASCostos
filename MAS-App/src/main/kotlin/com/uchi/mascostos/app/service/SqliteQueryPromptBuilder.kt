@@ -2,10 +2,34 @@ package com.uchi.mascostos.app.service
 
 object SqliteQueryPromptBuilder {
 
+    private const val DEFAULT_SCHEMA = """
+SCHEMA_SQLDELPHIN_BASICA (extracto mínimo, completar por introspección en runtime):
+- proyecto(id_proyecto, nombre_proyecto, id_usuario, fecha_inicio, fecha_fin, duracion)
+- presupuesto(id_presupuesto, id_proyecto, nombre_presupuesto, costo_directo, total_presupuesto)
+- titulo(id_titulo, id_presupuesto, id_titulopadre, descripcion_titulo, numeracion_titulo)
+- costo_unitario(id_costounitario, id_titulo, descripcion_costo, id_unidad, costo_unitario)
+- composicion_costounitario(id_composicion, id_subtotal, id_costoauxiliar, cantidad_composicion, costo_composicion)
+- subtotal_costounitario(id_subtotal, id_costounitario, id_tipocosto, subtotal)
+- unidad(id_unidad, descripcion_unidad, abreviatura_unidad)
+- producto(id_producto, descripcion_producto, id_unidad, id_categoria)
+- stock_producto(id_stock, id_sucursal, id_producto, saldo_almacen)
+- compra_fact(id_comprafact, id_proveedor, id_documento, fecha_documento, total_documento)
+- detalle_compra_fact(id_detallecomprafact, id_comprafact, id_producto, cantidad, precio_unitario)
+- salida(id_salida, id_cliente, fecha_documento, id_proyecto)
+- detalle_salida(id_detallesalida, id_salida, id_producto, cantidad, costo_unitario)
+- requerimiento(id_requerimiento, id_proyecto, fecha_documento, total_documento)
+- detalle_requerimiento(id_detallerequerimiento, id_requerimiento, id_producto, cantidad, precio_unitario)
+- persona(id_persona, nombre_persona, apellidos_persona, id_tipopersona)
+- usuario(id_usuario, login_usuario, id_perfil, id_persona)
+- kardex(id_movimiento, id_producto, fecha_movimiento, entrada_almacen, salida_almacen, saldo_almacen)
+- moneda(id_moneda, nombre_moneda, simbolo_moneda)
+- parametro(id_parametro, valor_parametro, valor_texto)
+"""
+
     private const val TEMPLATE = """
 Eres un motor experto en generación de consultas SQL para SQLite, integrado en una aplicación Kotlin.
 
-Tu única tarea es convertir texto del usuario en consultas SQL válidas sobre el DataSQL compatible con Delphin Express.
+Tu única tarea es convertir texto del usuario en consultas SQL válidas sobre SQLDelphin_basica.sqlite.
 
 ========================
 REGLAS OBLIGATORIAS
@@ -21,146 +45,12 @@ REGLAS OBLIGATORIAS
 * RESPONDER SOLO con SQL (sin explicaciones, sin texto extra)
 
 ========================
-TABLAS DISPONIBLES (DataSQL)
-============================
+SCHEMA DISPONIBLE
+=================
 
-subpresupuestos(
-  cod_presupuesto,
-  cod_subpresupuesto,
-  descripcion
-)
+{SCHEMA_CONTEXT}
 
-presupuesto_partida(
-  cod_presupuesto,
-  cod_subpresupuesto,
-  cod_partida,
-  precio1,
-  horas_hombre,
-  horas_maquina,
-  ano,
-  mes
-)
-
-partidas(
-  cod_partida,
-  descripcion,
-  cod_unidad,
-  rendimiento_mo,
-  rendimiento_eq
-)
-
-unidades(
-  cod_unidad,
-  simbolo
-)
-
-partida_detalle(
-  id_detalle,
-  cod_partida,
-  cod_insumo,
-  tipo,
-  cuadrilla,
-  cantidad
-)
-
-insumos(
-  cod_insumo,
-  descripcion,
-  cod_unidad
-)
-
-precio_particular_insumo(
-  cod_presupuesto,
-  cod_subpresupuesto,
-  cod_insumo,
-  precio1,
-  ano,
-  mes
-)
-
-proyectos(
-  id,
-  codigo,
-  nombre,
-  cliente,
-  ubicacion,
-  moneda,
-  estado,
-  observaciones
-)
-
-proyecto_subpresupuestos(
-  id,
-  proyecto_id,
-  cod_subpresupuesto,
-  nombre,
-  orden,
-  activo
-)
-
-proyecto_partidas(
-  id,
-  proyecto_id,
-  subpresupuesto_id,
-  cod_partida_base,
-  descripcion,
-  unidad,
-  metrado,
-  precio_unitario,
-  parcial,
-  rendimiento_mo,
-  rendimiento_eq,
-  horas_hombre,
-  horas_maquina,
-  origen,
-  orden,
-  activo
-)
-
-proyecto_partida_detalle(
-  id,
-  proyecto_partida_id,
-  cod_insumo_base,
-  descripcion,
-  unidad,
-  tipo,
-  cuadrilla,
-  cantidad,
-  precio_unitario,
-  parcial,
-  origen,
-  activo
-)
-
-========================
-RELACIONES CLAVE
-================
-
-subpresupuestos.cod_subpresupuesto = presupuesto_partida.cod_subpresupuesto
-presupuesto_partida.cod_partida = partidas.cod_partida
-partidas.cod_unidad = unidades.cod_unidad
-partida_detalle.cod_partida = partidas.cod_partida
-partida_detalle.cod_insumo = insumos.cod_insumo
-insumos.cod_unidad = unidades.cod_unidad
-precio_particular_insumo.cod_insumo = insumos.cod_insumo
-precio_particular_insumo.cod_presupuesto = presupuesto_partida.cod_presupuesto
-proyecto_subpresupuestos.proyecto_id = proyectos.id
-proyecto_partidas.proyecto_id = proyectos.id
-proyecto_partidas.subpresupuesto_id = proyecto_subpresupuestos.id
-proyecto_partidas.cod_partida_base = partidas.cod_partida
-proyecto_partida_detalle.proyecto_partida_id = proyecto_partidas.id
-proyecto_partida_detalle.cod_insumo_base = insumos.cod_insumo
-
-========================
-INTENCIONES COMUNES
-===================
-
-* partidas por subpresupuesto
-* insumos por partida
-* precios de insumos por mes/año
-* proyectos y sus subpresupuestos
-* detalle de proyecto por partida
-* comparativo catálogo vs proyecto
+NOTA: Si falta detalle de columnas para una tabla, usa únicamente columnas comunes/seguras y prioriza joins por llaves obvias (id_*).
 
 ========================
 FORMATO DE RESPUESTA
@@ -178,7 +68,12 @@ ENTRADA DEL USUARIO
 {USER_INPUT}
 """
 
-    fun build(userInput: String): String {
-        return TEMPLATE.replace("{USER_INPUT}", userInput.trim())
+    fun build(userInput: String): String = build(userInput, DEFAULT_SCHEMA)
+
+    fun build(userInput: String, schemaContext: String): String {
+        val safeSchema = schemaContext.trim().ifEmpty { DEFAULT_SCHEMA.trim() }
+        return TEMPLATE
+            .replace("{SCHEMA_CONTEXT}", safeSchema)
+            .replace("{USER_INPUT}", userInput.trim())
     }
 }
