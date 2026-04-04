@@ -16,7 +16,7 @@ import kotlin.test.assertEquals
 class PresupuestoApiBrechasCatalogoTest {
 
     @Test
-    fun `detecta brecha cuando descripcion tecnica no cumple formato esperado`() {
+    fun `detecta brecha cuando descripcion y unidad difieren del catalogo`() {
         val baseRepo = FakeBaseCostosRepository()
         val proyectoRepo = FakeProyectoPresupuestoRepository()
         val api = PresupuestoApiImpl(baseRepo, proyectoRepo)
@@ -27,6 +27,19 @@ class PresupuestoApiBrechasCatalogoTest {
         assertEquals(true, brechas.first().catalogoEncontrado)
         assertEquals(true, brechas.first().requiereNormalizacion)
         assertEquals("Excavación manual", brechas.first().descripcionCatalogo)
+    }
+
+    @Test
+    fun `no detecta brecha cuando proyecto coincide con catalogo`() {
+        val baseRepo = FakeBaseCostosRepository()
+        val proyectoRepo = FakeProyectoPresupuestoRepository(descripcion = "Excavación manual", unidad = "m3")
+        val api = PresupuestoApiImpl(baseRepo, proyectoRepo)
+
+        val brechas = api.detectarBrechasCatalogo(proyectoId = 1L, subpresupuestoId = 10L)
+
+        assertEquals(1, brechas.size)
+        assertEquals(true, brechas.first().catalogoEncontrado)
+        assertEquals(false, brechas.first().requiereNormalizacion)
     }
 
     private class FakeBaseCostosRepository : BaseCostosRepository {
@@ -52,7 +65,10 @@ class PresupuestoApiBrechasCatalogoTest {
         override fun listarAncestrosPartida(codPartida: String): List<PartidaJerarquiaNode> = emptyList()
     }
 
-    private class FakeProyectoPresupuestoRepository : ProyectoPresupuestoRepository {
+    private class FakeProyectoPresupuestoRepository(
+        private val descripcion: String = "DESC PROYECTO",
+        private val unidad: String? = "und"
+    ) : ProyectoPresupuestoRepository {
         override fun listarSubpresupuestosProyecto(proyectoId: Long): List<ProyectoSubpresupuesto> = emptyList()
 
         override fun crearSubpresupuestoProyecto(
@@ -69,8 +85,8 @@ class PresupuestoApiBrechasCatalogoTest {
                     proyectoId = proyectoId,
                     subpresupuestoId = subpresupuestoId,
                     codPartidaBase = "010101",
-                    descripcion = "Excavación manual",
-                    unidad = "m3",
+                    descripcion = descripcion,
+                    unidad = unidad,
                     metrado = 10.0,
                     precioUnitario = 100.0,
                     parcial = 1000.0,

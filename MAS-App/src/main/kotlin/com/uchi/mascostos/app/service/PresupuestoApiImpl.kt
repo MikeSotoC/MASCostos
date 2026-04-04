@@ -75,8 +75,8 @@ class PresupuestoApiImpl(
             val cod = partida.codPartidaBase ?: return@mapNotNull null
             val catalogo = baseCostosRepository.obtenerPartida(cod)
 
-            val descripcionEsperada = cod
-            val unidadEsperada: String? = null
+            val descripcionEsperada = catalogo?.descripcion ?: cod
+            val unidadEsperada: String? = catalogo?.unidad
 
             val requiereNormalizacion =
                 partida.descripcion != descripcionEsperada || partida.unidad != unidadEsperada
