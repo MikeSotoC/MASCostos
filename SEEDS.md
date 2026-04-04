@@ -41,3 +41,13 @@ Con partidas, insumos, detalles y precios de ejemplo para pruebas funcionales m�
 3. Abre la app nuevamente.
 
 Se recrearán con el catálogo y proyecto de ejemplo.
+
+## Crear `SQLDelphin_basica.sqlite` desde `SQLDelphin_basica.sql`
+
+Si tienes el dump SQL completo en la raíz, puedes materializar la base SQLite con:
+
+```bash
+python bootstrap_sqlite.py --sql SQLDelphin_basica.sql --out SQLDelphin_basica.sqlite --force
+```
+
+Luego la app detecta y usa ese archivo automáticamente.
