@@ -28,11 +28,23 @@ class DesktopMain : Application() {
 
         val projects = FXCollections.observableArrayList<ProjectRef>()
         val projectsView = ListView(projects)
+
         val nameField = TextField().apply { promptText = "Nombre del proyecto" }
         val locationField = TextField().apply { promptText = "Ubicación" }
-
         val createButton = Button("Crear proyecto")
         val refreshButton = Button("Refrescar")
+
+        val codeField = TextField().apply { promptText = "Código costo_unitario" }
+        val quantityField = TextField().apply { promptText = "Cantidad" }
+        val addItemButton = Button("Agregar ítem")
+        val estimateButton = Button("Calcular presupuesto")
+
+        val resultLabel = Label("Total estimado: 0.00")
+        val nextActionLabel = Label(
+            "Siguiente acción sugerida: pantalla de árbol partida/título + edición de metrado"
+        )
+
+        fun selectedProjectId(): String? = projectsView.selectionModel.selectedItem?.id
 
         fun reloadProjects() {
             projects.setAll(services.projectGateway.listProjects())
@@ -49,10 +61,29 @@ class DesktopMain : Application() {
             reloadProjects()
         }
 
+        addItemButton.setOnAction {
+            val projectId = selectedProjectId() ?: return@setOnAction
+            val code = codeField.text?.trim().orEmpty()
+            val quantity = quantityField.text?.toDoubleOrNull() ?: return@setOnAction
+            services.projectGateway.addProjectItem(projectId, code, quantity)
+            codeField.clear()
+            quantityField.clear()
+        }
+
+        estimateButton.setOnAction {
+            val projectId = selectedProjectId() ?: return@setOnAction
+            val result = services.budgetGateway.estimate(projectId)
+            resultLabel.text = "Total estimado: %.2f (%d items)".format(result.total, result.lines.size)
+        }
+
         refreshButton.setOnAction { reloadProjects() }
         reloadProjects()
 
-        val form = HBox(8.0, nameField, locationField, createButton, refreshButton).apply {
+        val projectForm = HBox(8.0, nameField, locationField, createButton, refreshButton).apply {
+            padding = Insets(12.0)
+        }
+
+        val itemForm = HBox(8.0, codeField, quantityField, addItemButton, estimateButton).apply {
             padding = Insets(12.0)
         }
 
@@ -60,12 +91,15 @@ class DesktopMain : Application() {
             10.0,
             Label("Proyectos"),
             projectsView,
+            itemForm,
+            resultLabel,
+            nextActionLabel,
         ).apply {
             padding = Insets(12.0)
         }
 
         val root = BorderPane().apply {
-            top = form
+            top = projectForm
             center = content
         }
 

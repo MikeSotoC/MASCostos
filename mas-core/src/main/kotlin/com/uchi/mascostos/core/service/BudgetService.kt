@@ -24,6 +24,12 @@ class BudgetService(
         return projectRepository.list().map { ProjectRef(id = it.id, name = it.name) }
     }
 
+    override fun addProjectItem(projectId: String, costCode: String, quantity: Double) {
+        require(costCode.isNotBlank()) { "El código de costo no puede estar vacío" }
+        require(quantity > 0) { "La cantidad debe ser mayor a cero" }
+        projectItemRepository.addItem(projectId = projectId, code = costCode, quantity = quantity)
+    }
+
     override fun estimate(projectId: String): BudgetResult {
         val project = projectRepository.list().firstOrNull { it.id == projectId }
             ?: error("Proyecto no encontrado: $projectId")
