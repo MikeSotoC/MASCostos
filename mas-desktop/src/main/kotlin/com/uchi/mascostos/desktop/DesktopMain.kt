@@ -10,9 +10,10 @@ import javafx.geometry.Insets
 import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.control.Label
-import javafx.scene.control.ListCell
-import javafx.scene.control.ListView
+import javafx.scene.control.SelectionMode
 import javafx.scene.control.TextField
+import javafx.scene.control.TreeItem
+import javafx.scene.control.TreeView
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
@@ -29,23 +30,15 @@ class DesktopMain : Application() {
         )
 
         val projects = FXCollections.observableArrayList<ProjectRef>()
-        val projectsView = ListView(projects)
+        val projectsView = javafx.scene.control.ListView(projects)
 
-        val catalogItems = FXCollections.observableArrayList<BudgetCatalogItem>()
-        val catalogView = ListView(catalogItems).apply {
-            setCellFactory {
-                object : ListCell<BudgetCatalogItem>() {
-                    override fun updateItem(item: BudgetCatalogItem?, empty: Boolean) {
-                        super.updateItem(item, empty)
-                        text = if (empty || item == null) {
-                            null
-                        } else {
-                            "${item.titleName} | ${item.costCode} - ${item.description} (${item.unitCost})"
-                        }
-                    }
-                }
-            }
+        val rootNode = TreeItem("Estructura presupuestal").apply { isExpanded = true }
+        val structureView = TreeView(rootNode).apply {
+            selectionModel.selectionMode = SelectionMode.MULTIPLE
+            isShowRoot = true
         }
+
+        val treeCostMap = mutableMapOf<TreeItem<String>, String>()
 
         val nameField = TextField().apply { promptText = "Nombre del proyecto" }
         val locationField = TextField().apply { promptText = "Ubicación" }
@@ -54,21 +47,38 @@ class DesktopMain : Application() {
 
         val quantityField = TextField().apply { promptText = "Cantidad" }
         val loadCatalogButton = Button("Cargar estructura")
-        val addSelectedButton = Button("Agregar seleccionado")
+        val addSelectedButton = Button("Agregar selección")
         val estimateButton = Button("Calcular presupuesto")
 
         val resultLabel = Label("Total estimado: 0.00")
         val pendingLabel = Label(
-            "Falta: árbol jerárquico título/partida, edición de metrado, reportes y plugins firmados"
+            "Falta: metrado por partida, selector de presupuesto, reportes y plugins firmados"
         )
         val nextActionLabel = Label(
-            "Siguiente acción: implementar vista jerárquica de títulos y partidas con selección múltiple"
+            "Siguiente acción: edición de metrado y subtotal incremental por nodo"
         )
 
         fun selectedProjectId(): String? = projectsView.selectionModel.selectedItem?.id
 
         fun reloadProjects() {
             projects.setAll(services.projectGateway.listProjects())
+        }
+
+        fun buildStructureTree(items: List<BudgetCatalogItem>) {
+            treeCostMap.clear()
+            rootNode.children.clear()
+
+            val grouped = items.groupBy { "${it.titleName} (${it.titleId ?: "N/A"})" }
+            grouped.toSortedMap().forEach { (title, titleItems) ->
+                val titleNode = TreeItem(title).apply { isExpanded = true }
+                titleItems.forEach { item ->
+                    val text = "${item.costCode} - ${item.description} [${item.unit}] S/ ${"%.2f".format(item.unitCost)}"
+                    val leaf = TreeItem(text)
+                    treeCostMap[leaf] = item.costCode
+                    titleNode.children += leaf
+                }
+                rootNode.children += titleNode
+            }
         }
 
         createButton.setOnAction {
@@ -84,14 +94,22 @@ class DesktopMain : Application() {
 
         loadCatalogButton.setOnAction {
             val projectId = selectedProjectId() ?: return@setOnAction
-            catalogItems.setAll(services.budgetCatalogGateway.listCatalogForProject(projectId))
+            val items = services.budgetCatalogGateway.listCatalogForProject(projectId)
+            buildStructureTree(items)
         }
 
         addSelectedButton.setOnAction {
             val projectId = selectedProjectId() ?: return@setOnAction
-            val selected = catalogView.selectionModel.selectedItem ?: return@setOnAction
             val quantity = quantityField.text?.toDoubleOrNull() ?: return@setOnAction
-            services.projectGateway.addProjectItem(projectId, selected.costCode, quantity)
+
+            val selectedLeaves = structureView.selectionModel.selectedItems
+                .mapNotNull { treeCostMap[it] }
+                .distinct()
+
+            selectedLeaves.forEach { code ->
+                services.projectGateway.addProjectItem(projectId, code, quantity)
+            }
+
             quantityField.clear()
         }
 
@@ -116,9 +134,9 @@ class DesktopMain : Application() {
             10.0,
             Label("Proyectos"),
             projectsView,
-            Label("Estructura de costos por presupuesto del proyecto"),
+            Label("Estructura jerárquica de costos por presupuesto del proyecto"),
             structureForm,
-            catalogView,
+            structureView,
             resultLabel,
             pendingLabel,
             nextActionLabel,
@@ -132,7 +150,7 @@ class DesktopMain : Application() {
         }
 
         stage.title = "MASCostos - Base Presupuestos"
-        stage.scene = Scene(root, 1080.0, 720.0)
+        stage.scene = Scene(root, 1120.0, 760.0)
         stage.show()
     }
 }

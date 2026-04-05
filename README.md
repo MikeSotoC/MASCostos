@@ -28,20 +28,20 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 3. **Adaptadores SQLite** para proyecto, items de proyecto y catálogo de costos.
 4. **Inicialización condicional de SQLite** desde `SQLDelphin_basica.sql`.
 5. **Estructura presupuestal por proyecto**: lectura de `titulo` + `costo_unitario` usando `id_proyecto -> presupuesto -> titulo`.
-6. **Pantalla desktop base** para crear/listar proyectos, cargar estructura, agregar seleccionado y calcular total.
+6. **Vista jerárquica en UI** agrupada por título y selección múltiple para agregar costos en lote.
 
 ## Falta implementar
 
-- Árbol jerárquico de títulos/partidas con expand/collapse.
 - Edición de metrado por partida.
 - Presupuestos múltiples por proyecto (selección explícita de presupuesto).
+- Subtotales por título y total incremental en tiempo real.
 - Reportes/exportación (PDF/Excel).
 - Sistema formal de plugins con versionado, permisos y firma.
 
 ## Siguiente acción recomendada
 
-Implementar la **vista jerárquica de estructura presupuestal**:
+Implementar **metrado + subtotales incrementales**:
 
-1. construir árbol `titulo -> costo_unitario`,
-2. habilitar selección múltiple y agregado masivo al proyecto,
-3. mostrar subtotal por nodo y total incremental en la UI.
+1. editar metrado por ítem agregado,
+2. recalcular subtotal por título,
+3. mostrar variación del total al vuelo en la UI.
