@@ -9,24 +9,14 @@ import com.uchi.mascostos.core.ports.ProjectRepository
 import java.sql.Connection
 import java.util.UUID
 
-class SqliteProjectRepository(private val connection: Connection) : ProjectRepository {
-    init {
-        connection.createStatement().use {
-            it.execute(
-                """
-                CREATE TABLE IF NOT EXISTS mas_project (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    location TEXT
-                )
-                """.trimIndent()
-            )
-        }
-    }
+private fun nextId12(): String = UUID.randomUUID().toString().replace("-", "").take(12)
 
+class SqliteProjectRepository(private val connection: Connection) : ProjectRepository {
     override fun create(name: String, location: String?): Project {
-        val id = UUID.randomUUID().toString()
-        connection.prepareStatement("INSERT INTO mas_project(id, name, location) VALUES (?, ?, ?)").use { ps ->
+        val id = nextId12()
+        connection.prepareStatement(
+            "INSERT INTO proyecto(id_proyecto, nombre_proyecto, lugar_proyecto) VALUES (?, ?, ?)"
+        ).use { ps ->
             ps.setString(1, id)
             ps.setString(2, name)
             ps.setString(3, location)
@@ -37,10 +27,18 @@ class SqliteProjectRepository(private val connection: Connection) : ProjectRepos
 
     override fun list(): List<Project> {
         return connection.createStatement().use { st ->
-            st.executeQuery("SELECT id, name, location FROM mas_project ORDER BY name").use { rs ->
+            st.executeQuery(
+                "SELECT id_proyecto, nombre_proyecto, lugar_proyecto FROM proyecto ORDER BY nombre_proyecto"
+            ).use { rs ->
                 buildList {
                     while (rs.next()) {
-                        add(Project(rs.getString("id"), rs.getString("name"), rs.getString("location")))
+                        add(
+                            Project(
+                                id = rs.getString("id_proyecto"),
+                                name = rs.getString("nombre_proyecto"),
+                                location = rs.getString("lugar_proyecto"),
+                            )
+                        )
                     }
                 }
             }
@@ -97,8 +95,10 @@ class SqliteCostCatalogRepository(private val connection: Connection) : CostCata
 
         val placeholders = codes.joinToString(",") { "?" }
         val sql =
-            "SELECT id_partida AS code, descripcion AS description, unidad, costo_unitario AS unit_cost " +
-                "FROM partida_base WHERE id_partida IN ($placeholders)"
+            "SELECT cu.id_costounitario AS code, cu.descripcion_costo AS description, " +
+                "COALESCE(u.nombre_unidad, 'und') AS unidad, cu.costo_unitario AS unit_cost " +
+                "FROM costo_unitario cu LEFT JOIN unidad u ON u.id_unidad = cu.id_unidad " +
+                "WHERE cu.id_costounitario IN ($placeholders)"
 
         return connection.prepareStatement(sql).use { ps ->
             codes.forEachIndexed { idx, code -> ps.setString(idx + 1, code) }

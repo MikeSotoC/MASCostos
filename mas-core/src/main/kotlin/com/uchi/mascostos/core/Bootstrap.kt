@@ -26,7 +26,11 @@ object Bootstrap {
         val connection = engine.openConnection()
 
         if (schemaScript != null) {
-            SqlScriptRunner.run(connection, schemaScript)
+            SqlScriptRunner.ensureSqliteInitialized(
+                connection = connection,
+                sqliteFile = sqliteFile,
+                scriptPath = schemaScript,
+            )
         }
 
         val projectRepo = SqliteProjectRepository(connection)
