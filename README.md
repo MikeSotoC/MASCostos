@@ -9,12 +9,21 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 
 ## Módulos
 
-- `mas-api`: contratos públicos para plugins.
-- `mas-core`: dominio, casos de uso y acceso de datos.
+- `mas-api`: contratos públicos para plugins y gateways de negocio.
+- `mas-core`: dominio, servicios y adaptadores SQLite.
 - `mas-desktop`: app JavaFX de escritorio.
 
-## Objetivo de esta primera base
+## Funcionalidad implementada en esta fase
 
-1. Definir una arquitectura extensible.
-2. Exponer una API estable para terceros.
-3. Preparar la integración de datos desde la base SQL actual.
+1. **Registro de plugins** vía `ServiceLoader`.
+2. **Casos de negocio base**: creación/listado de proyectos y estimación de presupuesto.
+3. **Adaptadores SQLite** para proyecto, items de proyecto y catálogo de costos.
+4. **Runner de script SQL** para inicializar la base desde `SQLDelphin_basica.sql`.
+5. **Pantalla desktop base** para crear y listar proyectos.
+
+## Siguiente bloque recomendado
+
+- Árbol de partidas/subpartidas.
+- Motor de análisis de precios unitarios.
+- Reportes/exportación (PDF/Excel).
+- Sistema formal de plugins con versionado y firma.
