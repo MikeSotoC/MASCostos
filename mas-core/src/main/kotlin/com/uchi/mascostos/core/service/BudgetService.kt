@@ -3,6 +3,7 @@ package com.uchi.mascostos.core.service
 import com.uchi.mascostos.api.model.BudgetCatalogItem
 import com.uchi.mascostos.api.model.BudgetLine
 import com.uchi.mascostos.api.model.BudgetResult
+import com.uchi.mascostos.api.model.ProjectCostItem
 import com.uchi.mascostos.api.model.ProjectRef
 import com.uchi.mascostos.api.service.BudgetCatalogGateway
 import com.uchi.mascostos.api.service.BudgetGateway
@@ -32,6 +33,26 @@ class BudgetService(
         require(costCode.isNotBlank()) { "El código de costo no puede estar vacío" }
         require(quantity > 0) { "La cantidad debe ser mayor a cero" }
         projectItemRepository.addItem(projectId = projectId, code = costCode, quantity = quantity)
+    }
+
+    override fun listProjectItems(projectId: String): List<ProjectCostItem> {
+        val projectItems = projectItemRepository.findByProject(projectId)
+        val costs = costCatalogRepository.findByCodes(projectItems.map { it.code }.toSet()).associateBy { it.code }
+        val titleByCode = budgetStructureRepository
+            .listCatalogByProject(projectId)
+            .associateBy({ it.costCode }, { it.titleName })
+
+        return projectItems.mapNotNull { row ->
+            val cost = costs[row.code] ?: return@mapNotNull null
+            ProjectCostItem(
+                titleName = titleByCode[row.code] ?: "SIN TITULO",
+                costCode = row.code,
+                description = cost.description,
+                unit = cost.unit,
+                quantity = row.quantity,
+                unitCost = cost.unitCost,
+            )
+        }
     }
 
     override fun listCatalogForProject(projectId: String): List<BudgetCatalogItem> {

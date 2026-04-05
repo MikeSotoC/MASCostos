@@ -2,6 +2,7 @@ package com.uchi.mascostos.desktop
 
 import atlantafx.base.theme.PrimerLight
 import com.uchi.mascostos.api.model.BudgetCatalogItem
+import com.uchi.mascostos.api.model.ProjectCostItem
 import com.uchi.mascostos.api.model.ProjectRef
 import com.uchi.mascostos.core.Bootstrap
 import javafx.application.Application
@@ -10,7 +11,9 @@ import javafx.geometry.Insets
 import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.control.Label
+import javafx.scene.control.ListCell
 import javafx.scene.control.SelectionMode
+import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
 import javafx.scene.control.TreeItem
 import javafx.scene.control.TreeView
@@ -38,6 +41,22 @@ class DesktopMain : Application() {
             isShowRoot = true
         }
 
+        val projectItems = FXCollections.observableArrayList<ProjectCostItem>()
+        val projectItemsView = javafx.scene.control.ListView(projectItems).apply {
+            setCellFactory {
+                object : ListCell<ProjectCostItem>() {
+                    override fun updateItem(item: ProjectCostItem?, empty: Boolean) {
+                        super.updateItem(item, empty)
+                        text = if (empty || item == null) {
+                            null
+                        } else {
+                            "${item.titleName} | ${item.costCode} - ${item.description} | ${item.quantity} x ${item.unitCost} = ${"%.2f".format(item.subtotal)}"
+                        }
+                    }
+                }
+            }
+        }
+
         val treeCostMap = mutableMapOf<TreeItem<String>, String>()
 
         val nameField = TextField().apply { promptText = "Nombre del proyecto" }
@@ -45,20 +64,40 @@ class DesktopMain : Application() {
         val createButton = Button("Crear proyecto")
         val refreshButton = Button("Refrescar")
 
-        val quantityField = TextField().apply { promptText = "Cantidad" }
+        val quantityField = TextField().apply { promptText = "Cantidad para agregar" }
+        val editQuantityField = TextField().apply { promptText = "Nueva cantidad ítem seleccionado" }
         val loadCatalogButton = Button("Cargar estructura")
         val addSelectedButton = Button("Agregar selección")
+        val updateSelectedItemButton = Button("Actualizar ítem")
         val estimateButton = Button("Calcular presupuesto")
 
         val resultLabel = Label("Total estimado: 0.00")
+        val subtotalByTitleArea = TextArea().apply {
+            isEditable = false
+            promptText = "Subtotales por título"
+            prefRowCount = 5
+        }
         val pendingLabel = Label(
-            "Falta: metrado por partida, selector de presupuesto, reportes y plugins firmados"
+            "Falta: selector explícito de presupuesto, reportes y plugins firmados"
         )
         val nextActionLabel = Label(
-            "Siguiente acción: edición de metrado y subtotal incremental por nodo"
+            "Siguiente acción: selector de presupuesto por proyecto + reportes base"
         )
 
         fun selectedProjectId(): String? = projectsView.selectionModel.selectedItem?.id
+
+        fun refreshProjectItems(projectId: String) {
+            val items = services.projectGateway.listProjectItems(projectId)
+            projectItems.setAll(items)
+
+            val subtotals = items.groupBy { it.titleName }
+                .mapValues { (_, rows) -> rows.sumOf { it.subtotal } }
+                .toSortedMap()
+
+            subtotalByTitleArea.text = subtotals.entries.joinToString("\n") { (title, subtotal) ->
+                "$title: ${"%.2f".format(subtotal)}"
+            }
+        }
 
         fun reloadProjects() {
             projects.setAll(services.projectGateway.listProjects())
@@ -96,6 +135,7 @@ class DesktopMain : Application() {
             val projectId = selectedProjectId() ?: return@setOnAction
             val items = services.budgetCatalogGateway.listCatalogForProject(projectId)
             buildStructureTree(items)
+            refreshProjectItems(projectId)
         }
 
         addSelectedButton.setOnAction {
@@ -111,15 +151,33 @@ class DesktopMain : Application() {
             }
 
             quantityField.clear()
+            refreshProjectItems(projectId)
+        }
+
+        updateSelectedItemButton.setOnAction {
+            val projectId = selectedProjectId() ?: return@setOnAction
+            val selected = projectItemsView.selectionModel.selectedItem ?: return@setOnAction
+            val newQty = editQuantityField.text?.toDoubleOrNull() ?: return@setOnAction
+            services.projectGateway.addProjectItem(projectId, selected.costCode, newQty)
+            editQuantityField.clear()
+            refreshProjectItems(projectId)
         }
 
         estimateButton.setOnAction {
             val projectId = selectedProjectId() ?: return@setOnAction
             val result = services.budgetGateway.estimate(projectId)
             resultLabel.text = "Total estimado: %.2f (%d items)".format(result.total, result.lines.size)
+            refreshProjectItems(projectId)
         }
 
         refreshButton.setOnAction { reloadProjects() }
+
+        projectsView.selectionModel.selectedItemProperty().addListener { _, _, newProject ->
+            if (newProject != null) {
+                refreshProjectItems(newProject.id)
+            }
+        }
+
         reloadProjects()
 
         val projectForm = HBox(8.0, nameField, locationField, createButton, refreshButton).apply {
@@ -130,6 +188,10 @@ class DesktopMain : Application() {
             padding = Insets(12.0)
         }
 
+        val editForm = HBox(8.0, editQuantityField, updateSelectedItemButton).apply {
+            padding = Insets(12.0)
+        }
+
         val content = VBox(
             10.0,
             Label("Proyectos"),
@@ -137,6 +199,11 @@ class DesktopMain : Application() {
             Label("Estructura jerárquica de costos por presupuesto del proyecto"),
             structureForm,
             structureView,
+            Label("Ítems agregados al proyecto"),
+            editForm,
+            projectItemsView,
+            Label("Subtotales por título"),
+            subtotalByTitleArea,
             resultLabel,
             pendingLabel,
             nextActionLabel,
@@ -150,7 +217,7 @@ class DesktopMain : Application() {
         }
 
         stage.title = "MASCostos - Base Presupuestos"
-        stage.scene = Scene(root, 1120.0, 760.0)
+        stage.scene = Scene(root, 1180.0, 860.0)
         stage.show()
     }
 }
