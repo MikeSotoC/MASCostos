@@ -1,6 +1,7 @@
 package com.uchi.mascostos.api.service
 
 import com.uchi.mascostos.api.model.BudgetCatalogItem
+import com.uchi.mascostos.api.model.BudgetOption
 import com.uchi.mascostos.api.model.BudgetResult
 import com.uchi.mascostos.api.model.ProjectCostItem
 import com.uchi.mascostos.api.model.ProjectRef
@@ -17,5 +18,6 @@ interface BudgetGateway {
 }
 
 interface BudgetCatalogGateway {
-    fun listCatalogForProject(projectId: String): List<BudgetCatalogItem>
+    fun listBudgetsForProject(projectId: String): List<BudgetOption>
+    fun listCatalogForProject(projectId: String, budgetId: String? = null): List<BudgetCatalogItem>
 }

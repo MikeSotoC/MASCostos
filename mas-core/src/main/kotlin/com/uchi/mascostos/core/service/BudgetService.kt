@@ -2,6 +2,7 @@ package com.uchi.mascostos.core.service
 
 import com.uchi.mascostos.api.model.BudgetCatalogItem
 import com.uchi.mascostos.api.model.BudgetLine
+import com.uchi.mascostos.api.model.BudgetOption
 import com.uchi.mascostos.api.model.BudgetResult
 import com.uchi.mascostos.api.model.ProjectCostItem
 import com.uchi.mascostos.api.model.ProjectRef
@@ -55,8 +56,12 @@ class BudgetService(
         }
     }
 
-    override fun listCatalogForProject(projectId: String): List<BudgetCatalogItem> {
-        return budgetStructureRepository.listCatalogByProject(projectId)
+    override fun listBudgetsForProject(projectId: String): List<BudgetOption> {
+        return budgetStructureRepository.listBudgetsByProject(projectId)
+    }
+
+    override fun listCatalogForProject(projectId: String, budgetId: String?): List<BudgetCatalogItem> {
+        return budgetStructureRepository.listCatalogByProject(projectId, budgetId)
     }
 
     override fun estimate(projectId: String): BudgetResult {

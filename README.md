@@ -30,18 +30,19 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 5. **Estructura presupuestal por proyecto**: lectura de `titulo` + `costo_unitario` usando `id_proyecto -> presupuesto -> titulo`.
 6. **Vista jerárquica en UI** agrupada por título y selección múltiple para agregar costos en lote.
 7. **Metrado básico**: edición de cantidad por ítem agregado + subtotales por título en tiempo real.
+8. **Selector de presupuesto activo** por proyecto para filtrar la estructura cargada.
 
 ## Falta implementar
 
-- Presupuestos múltiples por proyecto (selección explícita de presupuesto).
 - Reportes/exportación (PDF/Excel).
 - Sistema formal de plugins con versionado, permisos y firma.
 - Validaciones avanzadas de negocio (costos bloqueados, reglas por tipo de partida).
+- Sincronización bidireccional de metrado con tablas de metrado nativas.
 
 ## Siguiente acción recomendada
 
-Implementar **selector de presupuesto por proyecto**:
+Implementar **reporte de presupuesto**:
 
-1. listar presupuestos de `presupuesto` por `id_proyecto`,
-2. permitir elegir presupuesto activo en la UI,
-3. cargar árbol y catálogo desde el presupuesto seleccionado.
+1. resumen por títulos,
+2. detalle por ítem con metrado y subtotal,
+3. exportación inicial a CSV/PDF.

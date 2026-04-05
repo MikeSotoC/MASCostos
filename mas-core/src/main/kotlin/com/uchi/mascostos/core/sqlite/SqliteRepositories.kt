@@ -1,6 +1,7 @@
 package com.uchi.mascostos.core.sqlite
 
 import com.uchi.mascostos.api.model.BudgetCatalogItem
+import com.uchi.mascostos.api.model.BudgetOption
 import com.uchi.mascostos.core.domain.CostItem
 import com.uchi.mascostos.core.domain.Project
 import com.uchi.mascostos.core.domain.ProjectItem
@@ -123,7 +124,22 @@ class SqliteCostCatalogRepository(private val connection: Connection) : CostCata
 }
 
 class SqliteBudgetStructureRepository(private val connection: Connection) : BudgetStructureRepository {
-    override fun listCatalogByProject(projectId: String): List<BudgetCatalogItem> {
+    override fun listBudgetsByProject(projectId: String): List<BudgetOption> {
+        return connection.prepareStatement(
+            "SELECT id_presupuesto, COALESCE(nombre_presupuesto, id_presupuesto) AS nombre FROM presupuesto WHERE id_proyecto = ? ORDER BY nombre_presupuesto"
+        ).use { ps ->
+            ps.setString(1, projectId)
+            ps.executeQuery().use { rs ->
+                buildList {
+                    while (rs.next()) {
+                        add(BudgetOption(id = rs.getString("id_presupuesto"), name = rs.getString("nombre")))
+                    }
+                }
+            }
+        }
+    }
+
+    override fun listCatalogByProject(projectId: String, budgetId: String?): List<BudgetCatalogItem> {
         val sql =
             """
             SELECT
@@ -138,11 +154,14 @@ class SqliteBudgetStructureRepository(private val connection: Connection) : Budg
             JOIN costo_unitario cu ON cu.id_titulo = t.id_titulo
             LEFT JOIN unidad u ON u.id_unidad = cu.id_unidad
             WHERE p.id_proyecto = ?
+              AND (? IS NULL OR p.id_presupuesto = ?)
             ORDER BY t.numeracion_titulo, cu.numeracion_costo
             """.trimIndent()
 
         return connection.prepareStatement(sql).use { ps ->
             ps.setString(1, projectId)
+            ps.setString(2, budgetId)
+            ps.setString(3, budgetId)
             ps.executeQuery().use { rs ->
                 buildList {
                     while (rs.next()) {

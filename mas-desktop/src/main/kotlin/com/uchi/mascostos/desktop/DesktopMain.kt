@@ -2,6 +2,7 @@ package com.uchi.mascostos.desktop
 
 import atlantafx.base.theme.PrimerLight
 import com.uchi.mascostos.api.model.BudgetCatalogItem
+import com.uchi.mascostos.api.model.BudgetOption
 import com.uchi.mascostos.api.model.ProjectCostItem
 import com.uchi.mascostos.api.model.ProjectRef
 import com.uchi.mascostos.core.Bootstrap
@@ -10,6 +11,7 @@ import javafx.collections.FXCollections
 import javafx.geometry.Insets
 import javafx.scene.Scene
 import javafx.scene.control.Button
+import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
 import javafx.scene.control.ListCell
 import javafx.scene.control.SelectionMode
@@ -34,6 +36,9 @@ class DesktopMain : Application() {
 
         val projects = FXCollections.observableArrayList<ProjectRef>()
         val projectsView = javafx.scene.control.ListView(projects)
+
+        val budgets = FXCollections.observableArrayList<BudgetOption>()
+        val budgetSelector = ComboBox(budgets).apply { promptText = "Presupuesto activo" }
 
         val rootNode = TreeItem("Estructura presupuestal").apply { isExpanded = true }
         val structureView = TreeView(rootNode).apply {
@@ -78,13 +83,15 @@ class DesktopMain : Application() {
             prefRowCount = 5
         }
         val pendingLabel = Label(
-            "Falta: selector explícito de presupuesto, reportes y plugins firmados"
+            "Falta: reportes/exportación, plugins firmados y validaciones avanzadas"
         )
         val nextActionLabel = Label(
-            "Siguiente acción: selector de presupuesto por proyecto + reportes base"
+            "Siguiente acción: exportación de reporte de presupuesto (resumen + detalle)"
         )
 
         fun selectedProjectId(): String? = projectsView.selectionModel.selectedItem?.id
+
+        fun selectedBudgetId(): String? = budgetSelector.selectionModel.selectedItem?.id
 
         fun refreshProjectItems(projectId: String) {
             val items = services.projectGateway.listProjectItems(projectId)
@@ -101,6 +108,14 @@ class DesktopMain : Application() {
 
         fun reloadProjects() {
             projects.setAll(services.projectGateway.listProjects())
+        }
+
+        fun reloadBudgets(projectId: String) {
+            val list = services.budgetCatalogGateway.listBudgetsForProject(projectId)
+            budgets.setAll(list)
+            if (list.isNotEmpty()) {
+                budgetSelector.selectionModel.selectFirst()
+            }
         }
 
         fun buildStructureTree(items: List<BudgetCatalogItem>) {
@@ -133,7 +148,8 @@ class DesktopMain : Application() {
 
         loadCatalogButton.setOnAction {
             val projectId = selectedProjectId() ?: return@setOnAction
-            val items = services.budgetCatalogGateway.listCatalogForProject(projectId)
+            val budgetId = selectedBudgetId()
+            val items = services.budgetCatalogGateway.listCatalogForProject(projectId, budgetId)
             buildStructureTree(items)
             refreshProjectItems(projectId)
         }
@@ -174,8 +190,15 @@ class DesktopMain : Application() {
 
         projectsView.selectionModel.selectedItemProperty().addListener { _, _, newProject ->
             if (newProject != null) {
+                reloadBudgets(newProject.id)
                 refreshProjectItems(newProject.id)
             }
+        }
+
+        budgetSelector.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+            val projectId = selectedProjectId() ?: return@addListener
+            val items = services.budgetCatalogGateway.listCatalogForProject(projectId, selectedBudgetId())
+            buildStructureTree(items)
         }
 
         reloadProjects()
@@ -184,7 +207,11 @@ class DesktopMain : Application() {
             padding = Insets(12.0)
         }
 
-        val structureForm = HBox(8.0, loadCatalogButton, quantityField, addSelectedButton, estimateButton).apply {
+        val budgetForm = HBox(8.0, Label("Presupuesto:"), budgetSelector, loadCatalogButton).apply {
+            padding = Insets(12.0)
+        }
+
+        val structureForm = HBox(8.0, quantityField, addSelectedButton, estimateButton).apply {
             padding = Insets(12.0)
         }
 
@@ -196,7 +223,8 @@ class DesktopMain : Application() {
             10.0,
             Label("Proyectos"),
             projectsView,
-            Label("Estructura jerárquica de costos por presupuesto del proyecto"),
+            budgetForm,
+            Label("Estructura jerárquica de costos del presupuesto seleccionado"),
             structureForm,
             structureView,
             Label("Ítems agregados al proyecto"),
@@ -217,7 +245,7 @@ class DesktopMain : Application() {
         }
 
         stage.title = "MASCostos - Base Presupuestos"
-        stage.scene = Scene(root, 1180.0, 860.0)
+        stage.scene = Scene(root, 1180.0, 900.0)
         stage.show()
     }
 }

@@ -1,6 +1,7 @@
 package com.uchi.mascostos.core.ports
 
 import com.uchi.mascostos.api.model.BudgetCatalogItem
+import com.uchi.mascostos.api.model.BudgetOption
 import com.uchi.mascostos.core.domain.CostItem
 import com.uchi.mascostos.core.domain.Project
 import com.uchi.mascostos.core.domain.ProjectItem
@@ -20,5 +21,6 @@ interface CostCatalogRepository {
 }
 
 interface BudgetStructureRepository {
-    fun listCatalogByProject(projectId: String): List<BudgetCatalogItem>
+    fun listBudgetsByProject(projectId: String): List<BudgetOption>
+    fun listCatalogByProject(projectId: String, budgetId: String? = null): List<BudgetCatalogItem>
 }
