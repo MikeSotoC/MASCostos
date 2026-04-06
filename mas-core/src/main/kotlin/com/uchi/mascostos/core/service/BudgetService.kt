@@ -9,17 +9,19 @@ import com.uchi.mascostos.api.model.ProjectRef
 import com.uchi.mascostos.api.service.BudgetCatalogGateway
 import com.uchi.mascostos.api.service.BudgetGateway
 import com.uchi.mascostos.api.service.ProjectGateway
+import com.uchi.mascostos.api.service.ReportGateway
 import com.uchi.mascostos.core.ports.BudgetStructureRepository
 import com.uchi.mascostos.core.ports.CostCatalogRepository
 import com.uchi.mascostos.core.ports.ProjectItemRepository
 import com.uchi.mascostos.core.ports.ProjectRepository
+import java.nio.file.Path
 
 class BudgetService(
     private val projectRepository: ProjectRepository,
     private val projectItemRepository: ProjectItemRepository,
     private val costCatalogRepository: CostCatalogRepository,
     private val budgetStructureRepository: BudgetStructureRepository,
-) : ProjectGateway, BudgetGateway, BudgetCatalogGateway {
+) : ProjectGateway, BudgetGateway, BudgetCatalogGateway, ReportGateway {
 
     override fun createProject(name: String, location: String?): ProjectRef {
         val created = projectRepository.create(name = name, location = location)
@@ -62,6 +64,27 @@ class BudgetService(
 
     override fun listCatalogForProject(projectId: String, budgetId: String?): List<BudgetCatalogItem> {
         return budgetStructureRepository.listCatalogByProject(projectId, budgetId)
+    }
+
+    override fun exportProjectCsv(projectId: String, outputPath: Path): Path {
+        val items = listProjectItems(projectId)
+        val header = "titulo,codigo,descripcion,unidad,cantidad,costo_unitario,subtotal"
+        val rows = items.joinToString("\n") { item ->
+            listOf(
+                item.titleName,
+                item.costCode,
+                item.description,
+                item.unit,
+                item.quantity.toString(),
+                item.unitCost.toString(),
+                item.subtotal.toString(),
+            ).joinToString(",") { value ->
+                "\"${value.replace("\"", "''")}\""
+            }
+        }
+
+        outputPath.toFile().writeText("$header\n$rows")
+        return outputPath
     }
 
     override fun estimate(projectId: String): BudgetResult {

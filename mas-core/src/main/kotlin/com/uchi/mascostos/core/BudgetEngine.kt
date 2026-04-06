@@ -5,6 +5,7 @@ import com.uchi.mascostos.api.PluginContext
 import com.uchi.mascostos.api.service.BudgetCatalogGateway
 import com.uchi.mascostos.api.service.BudgetGateway
 import com.uchi.mascostos.api.service.ProjectGateway
+import com.uchi.mascostos.api.service.ReportGateway
 import com.uchi.mascostos.core.ports.BudgetStructureRepository
 import com.uchi.mascostos.core.ports.CostCatalogRepository
 import com.uchi.mascostos.core.ports.ProjectItemRepository
@@ -60,4 +61,11 @@ class BudgetEngine(
         costCatalogRepository: CostCatalogRepository,
         budgetStructureRepository: BudgetStructureRepository,
     ): BudgetCatalogGateway = createService(projectRepository, projectItemRepository, costCatalogRepository, budgetStructureRepository)
+
+    fun createReportGateway(
+        projectRepository: ProjectRepository,
+        projectItemRepository: ProjectItemRepository,
+        costCatalogRepository: CostCatalogRepository,
+        budgetStructureRepository: BudgetStructureRepository,
+    ): ReportGateway = createService(projectRepository, projectItemRepository, costCatalogRepository, budgetStructureRepository)
 }

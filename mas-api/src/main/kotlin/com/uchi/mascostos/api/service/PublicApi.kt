@@ -5,6 +5,7 @@ import com.uchi.mascostos.api.model.BudgetOption
 import com.uchi.mascostos.api.model.BudgetResult
 import com.uchi.mascostos.api.model.ProjectCostItem
 import com.uchi.mascostos.api.model.ProjectRef
+import java.nio.file.Path
 
 interface ProjectGateway {
     fun createProject(name: String, location: String?): ProjectRef
@@ -20,4 +21,8 @@ interface BudgetGateway {
 interface BudgetCatalogGateway {
     fun listBudgetsForProject(projectId: String): List<BudgetOption>
     fun listCatalogForProject(projectId: String, budgetId: String? = null): List<BudgetCatalogItem>
+}
+
+interface ReportGateway {
+    fun exportProjectCsv(projectId: String, outputPath: Path): Path
 }

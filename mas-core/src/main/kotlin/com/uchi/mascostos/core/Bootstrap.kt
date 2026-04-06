@@ -3,6 +3,7 @@ package com.uchi.mascostos.core
 import com.uchi.mascostos.api.service.BudgetCatalogGateway
 import com.uchi.mascostos.api.service.BudgetGateway
 import com.uchi.mascostos.api.service.ProjectGateway
+import com.uchi.mascostos.api.service.ReportGateway
 import com.uchi.mascostos.core.plugin.PluginRegistry
 import com.uchi.mascostos.core.sqlite.SqlScriptRunner
 import com.uchi.mascostos.core.sqlite.SqliteBudgetStructureRepository
@@ -15,6 +16,7 @@ data class AppServices(
     val projectGateway: ProjectGateway,
     val budgetGateway: BudgetGateway,
     val budgetCatalogGateway: BudgetCatalogGateway,
+    val reportGateway: ReportGateway,
 )
 
 object Bootstrap {
@@ -47,6 +49,7 @@ object Bootstrap {
             projectGateway = engine.createProjectGateway(projectRepo, itemRepo, costRepo, structureRepo),
             budgetGateway = engine.createBudgetGateway(projectRepo, itemRepo, costRepo, structureRepo),
             budgetCatalogGateway = engine.createBudgetCatalogGateway(projectRepo, itemRepo, costRepo, structureRepo),
+            reportGateway = engine.createReportGateway(projectRepo, itemRepo, costRepo, structureRepo),
         )
     }
 }

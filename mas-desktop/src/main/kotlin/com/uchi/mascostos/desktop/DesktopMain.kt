@@ -24,6 +24,8 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import java.nio.file.Paths
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class DesktopMain : Application() {
     override fun start(stage: Stage) {
@@ -75,6 +77,7 @@ class DesktopMain : Application() {
         val addSelectedButton = Button("Agregar selección")
         val updateSelectedItemButton = Button("Actualizar ítem")
         val estimateButton = Button("Calcular presupuesto")
+        val exportCsvButton = Button("Exportar CSV")
 
         val resultLabel = Label("Total estimado: 0.00")
         val subtotalByTitleArea = TextArea().apply {
@@ -86,8 +89,9 @@ class DesktopMain : Application() {
             "Falta: reportes/exportación, plugins firmados y validaciones avanzadas"
         )
         val nextActionLabel = Label(
-            "Siguiente acción: exportación de reporte de presupuesto (resumen + detalle)"
+            "Siguiente acción: interfaz Android inicial + sincronización de reportes"
         )
+        val exportStatusLabel = Label("Reporte: pendiente")
 
         fun selectedProjectId(): String? = projectsView.selectionModel.selectedItem?.id
 
@@ -179,6 +183,14 @@ class DesktopMain : Application() {
             refreshProjectItems(projectId)
         }
 
+        exportCsvButton.setOnAction {
+            val projectId = selectedProjectId() ?: return@setOnAction
+            val stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+            val out = Paths.get("report-${projectId}-$stamp.csv")
+            services.reportGateway.exportProjectCsv(projectId, out)
+            exportStatusLabel.text = "Reporte CSV generado: ${out.toAbsolutePath()}"
+        }
+
         estimateButton.setOnAction {
             val projectId = selectedProjectId() ?: return@setOnAction
             val result = services.budgetGateway.estimate(projectId)
@@ -211,7 +223,7 @@ class DesktopMain : Application() {
             padding = Insets(12.0)
         }
 
-        val structureForm = HBox(8.0, quantityField, addSelectedButton, estimateButton).apply {
+        val structureForm = HBox(8.0, quantityField, addSelectedButton, estimateButton, exportCsvButton).apply {
             padding = Insets(12.0)
         }
 
@@ -235,6 +247,7 @@ class DesktopMain : Application() {
             resultLabel,
             pendingLabel,
             nextActionLabel,
+            exportStatusLabel,
         ).apply {
             padding = Insets(12.0)
         }

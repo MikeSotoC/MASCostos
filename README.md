@@ -4,6 +4,7 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 
 - **Kotlin** como lenguaje principal.
 - **JavaFX + AtlantaFX** para la UI de escritorio.
+- **Inicio de interfaz Android (Jetpack Compose)**.
 - **API pública de plugins/addons** para extender funcionalidades.
 - Uso de la base SQL existente: `SQLDelphin_basica.sql`.
 
@@ -20,6 +21,7 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 - `mas-api`: contratos públicos para plugins y gateways de negocio.
 - `mas-core`: dominio, servicios y adaptadores SQLite.
 - `mas-desktop`: app JavaFX de escritorio.
+- `mas-android`: app Android base con Compose para iniciar la interfaz móvil.
 
 ## Funcionalidad implementada en esta fase
 
@@ -31,18 +33,21 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 6. **Vista jerárquica en UI** agrupada por título y selección múltiple para agregar costos en lote.
 7. **Metrado básico**: edición de cantidad por ítem agregado + subtotales por título en tiempo real.
 8. **Selector de presupuesto activo** por proyecto para filtrar la estructura cargada.
+9. **Reporte CSV** exportable desde desktop (resumen/detalle por ítems).
+10. **Base Android inicial** con pantalla Compose y guía del siguiente paso móvil.
 
 ## Falta implementar
 
-- Reportes/exportación (PDF/Excel).
+- Reportes/exportación PDF real.
 - Sistema formal de plugins con versionado, permisos y firma.
 - Validaciones avanzadas de negocio (costos bloqueados, reglas por tipo de partida).
 - Sincronización bidireccional de metrado con tablas de metrado nativas.
+- Integración de `mas-android` con gateways reales (local/remoto).
 
 ## Siguiente acción recomendada
 
-Implementar **reporte de presupuesto**:
+Implementar **API de reporte unificada + consumo Android**:
 
-1. resumen por títulos,
-2. detalle por ítem con metrado y subtotal,
-3. exportación inicial a CSV/PDF.
+1. endpoint/servicio de resumen por títulos e ítems,
+2. exportación CSV + PDF desde core,
+3. pantalla Android que liste proyectos y muestre resumen del presupuesto activo.

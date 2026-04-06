@@ -3,5 +3,6 @@ rootProject.name = "mascostos"
 include(
     "mas-api",
     "mas-core",
-    "mas-desktop"
+    "mas-desktop",
+    "mas-android"
 )
