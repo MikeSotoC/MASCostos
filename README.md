@@ -23,6 +23,7 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 - `mas-shared-ui`: lógica de UI compartida (subtotales, total y convención de reporte).
 - `mas-desktop`: app JavaFX de escritorio.
 - `mas-android`: app Android Compose con la misma estructura funcional de UI base.
+- `mas-backend`: API HTTP (Ktor) para exponer `mas-core` a clientes externos (incluyendo Android).
 
 ## Funcionalidad implementada en esta fase
 
@@ -37,20 +38,21 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 9. **Reporte CSV** exportable desde desktop (resumen/detalle por ítems).
 10. **Android UI paralela** con módulos visuales equivalentes.
 11. **Lógica UI compartida** entre Desktop/Android para totalización y convención de reportes.
-12. **Contrato de aplicación unificado** (`BudgetAppService`) con implementación core y mock Android para facilitar la futura conexión real.
+12. **Contrato de aplicación unificado** (`BudgetAppService`) con implementación core y mock Android.
+13. **Backend HTTP Ktor** con endpoints de proyectos, presupuestos, catálogo, ítems y export CSV.
 
 ## Falta implementar
 
+- Integrar Android con `mas-backend` (reemplazar `FakeBudgetAppService`).
 - Reportes/exportación PDF real.
 - Sistema formal de plugins con versionado, permisos y firma.
 - Validaciones avanzadas de negocio (costos bloqueados, reglas por tipo de partida).
 - Sincronización bidireccional de metrado con tablas de metrado nativas.
-- Integración de `mas-android` con gateways reales (local/remoto) compartiendo estado con `mas-core`.
 
 ## Siguiente acción recomendada
 
-Implementar **conexión real Android ↔ core**:
+Implementar **cliente Android real contra `mas-backend`**:
 
-1. adaptar `mas-core` a un backend consumible por Android (local API o remoto),
-2. reemplazar mock data Android por datos reales de proyectos/presupuestos,
-3. reutilizar `mas-shared-ui` para mantener paridad funcional en ambos frentes.
+1. cliente HTTP para consumir `/projects`, `/budgets`, `/catalog`, `/items`,
+2. reemplazar mock data Android por respuestas del backend,
+3. mantener `mas-shared-ui` como lógica común de presentación y cálculos.
