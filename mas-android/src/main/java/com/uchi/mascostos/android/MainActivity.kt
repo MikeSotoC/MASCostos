@@ -34,6 +34,8 @@ import com.uchi.mascostos.api.model.BudgetOption
 import com.uchi.mascostos.api.model.ProjectCostItem
 import com.uchi.mascostos.api.model.ProjectRef
 import com.uchi.mascostos.api.service.BudgetAppService
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.uchi.mascostos.shared.ui.BudgetUiLogic
 import com.uchi.mascostos.shared.ui.MasDesignSystem
 import com.uchi.mascostos.shared.ui.UiCostItem
@@ -58,6 +60,8 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 val scope = rememberCoroutineScope()
+                val gson = remember { Gson() }
+                val prefs = remember { getSharedPreferences("mascostos_cache", MODE_PRIVATE) }
 
                 var projects by remember { mutableStateOf<List<ProjectRef>>(emptyList()) }
                 var selectedProject by remember { mutableStateOf<ProjectRef?>(null) }
@@ -75,6 +79,30 @@ class MainActivity : ComponentActivity() {
                 var errorMessage by remember { mutableStateOf<String?>(null) }
                 var isLoading by remember { mutableStateOf(false) }
 
+                fun saveCache(projectId: String?) {
+                    prefs.edit()
+                        .putString("projects", gson.toJson(projects))
+                        .putString("budgets", gson.toJson(budgets))
+                        .putString("catalog", gson.toJson(catalog))
+                        .putString("items:$projectId", gson.toJson(projectItems))
+                        .apply()
+                }
+
+                fun loadCache() {
+                    val projectType = object : TypeToken<List<ProjectRef>>() {}.type
+                    val budgetType = object : TypeToken<List<BudgetOption>>() {}.type
+                    val catalogType = object : TypeToken<List<BudgetCatalogItem>>() {}.type
+                    projects = gson.fromJson<List<ProjectRef>>(prefs.getString("projects", "[]"), projectType) ?: emptyList()
+                    budgets = gson.fromJson<List<BudgetOption>>(prefs.getString("budgets", "[]"), budgetType) ?: emptyList()
+                    catalog = gson.fromJson<List<BudgetCatalogItem>>(prefs.getString("catalog", "[]"), catalogType) ?: emptyList()
+                    selectedProject = projects.firstOrNull()
+                    selectedBudget = budgets.firstOrNull()
+                    selectedProject?.let { p ->
+                        val itemType = object : TypeToken<List<ProjectCostItem>>() {}.type
+                        projectItems = gson.fromJson<List<ProjectCostItem>>(prefs.getString("items:${p.id}", "[]"), itemType) ?: emptyList()
+                    }
+                }
+
                 fun runSafely(block: suspend () -> Unit) {
                     scope.launch {
                         isLoading = true
@@ -90,6 +118,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 LaunchedEffect(Unit) {
+                    loadCache()
                     runSafely {
                         projects = withContext(Dispatchers.IO) { appService.listProjects() }
                         selectedProject = projects.firstOrNull()
@@ -98,6 +127,7 @@ class MainActivity : ComponentActivity() {
                             selectedBudget = budgets.firstOrNull()
                             catalog = withContext(Dispatchers.IO) { appService.listCatalogForProject(p.id, selectedBudget?.id) }
                             projectItems = withContext(Dispatchers.IO) { appService.listProjectItems(p.id) }
+                            saveCache(p.id)
                         }
                     }
                 }
@@ -138,6 +168,7 @@ class MainActivity : ComponentActivity() {
                                     selectedBudget = budgets.firstOrNull()
                                     catalog = withContext(Dispatchers.IO) { appService.listCatalogForProject(p.id, selectedBudget?.id) }
                                     projectItems = withContext(Dispatchers.IO) { appService.listProjectItems(p.id) }
+                                    saveCache(p.id)
                                 }
                             },
                             ) { Text("${p.name} (${p.id})", Modifier.padding(10.dp)) }
@@ -157,6 +188,7 @@ class MainActivity : ComponentActivity() {
                                 val pid = selectedProject?.id ?: return@clickable
                                 runSafely {
                                     catalog = withContext(Dispatchers.IO) { appService.listCatalogForProject(pid, b.id) }
+                                    saveCache(pid)
                                 }
                             }) { Text("${b.name} (${b.id})", Modifier.padding(10.dp)) }
                         }
@@ -185,6 +217,7 @@ class MainActivity : ComponentActivity() {
                             runSafely {
                                 withContext(Dispatchers.IO) { appService.upsertProjectItem(pid, code, qty) }
                                 projectItems = withContext(Dispatchers.IO) { appService.listProjectItems(pid) }
+                                saveCache(pid)
                             }
                         }) { Text("Agregar selección") }
                     }
@@ -212,6 +245,7 @@ class MainActivity : ComponentActivity() {
                             runSafely {
                                 withContext(Dispatchers.IO) { appService.upsertProjectItem(pid, item.costCode, qty) }
                                 projectItems = withContext(Dispatchers.IO) { appService.listProjectItems(pid) }
+                                saveCache(pid)
                             }
                         }) { Text("Actualizar ítem") }
                         Button(onClick = {
