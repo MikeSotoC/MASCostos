@@ -20,6 +20,7 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 
 - `mas-api`: contratos públicos para plugins y gateways de negocio.
 - `mas-core`: dominio, servicios y adaptadores SQLite.
+- `mas-shared-ui`: lógica de UI compartida (subtotales, total y convención de reporte).
 - `mas-desktop`: app JavaFX de escritorio.
 - `mas-android`: app Android Compose con la misma estructura funcional de UI base.
 
@@ -34,7 +35,8 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 7. **Metrado básico**: edición de cantidad por ítem agregado + subtotales por título en tiempo real.
 8. **Selector de presupuesto activo** por proyecto para filtrar la estructura cargada.
 9. **Reporte CSV** exportable desde desktop (resumen/detalle por ítems).
-10. **Android UI paralela** con módulos visuales equivalentes: proyecto activo, presupuesto activo, estructura, ítems, metrado, subtotales y exportación (mock).
+10. **Android UI paralela** con módulos visuales equivalentes.
+11. **Lógica UI compartida** entre Desktop/Android para totalización y convención de reportes.
 
 ## Falta implementar
 
@@ -46,8 +48,8 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 
 ## Siguiente acción recomendada
 
-Implementar **capa compartida para Desktop/Android**:
+Implementar **conexión real Android ↔ core**:
 
-1. extraer estado y casos de uso de UI a una capa común,
-2. conectar Android a gateways reales (no mock),
-3. mantener paridad funcional Desktop/Android en cada feature nueva.
+1. adaptar `mas-core` a un backend consumible por Android (local API o remoto),
+2. reemplazar mock data Android por datos reales de proyectos/presupuestos,
+3. reutilizar `mas-shared-ui` para mantener paridad funcional en ambos frentes.

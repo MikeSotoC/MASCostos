@@ -25,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.uchi.mascostos.shared.ui.BudgetUiLogic
+import com.uchi.mascostos.shared.ui.UiCostItem
 
 data class AndroidProject(val id: String, val name: String)
 data class AndroidBudget(val id: String, val name: String)
@@ -58,8 +60,9 @@ class MainActivity : ComponentActivity() {
                 var quantityToEdit by remember { mutableStateOf("") }
                 var exportStatus by remember { mutableStateOf("Reporte: pendiente") }
 
-                val total = projectItems.sumOf { it.subtotal }
-                val subtotalsByTitle = projectItems.groupBy { it.title }.mapValues { (_, v) -> v.sumOf { it.subtotal } }
+                val uiItems = projectItems.map { UiCostItem(it.title, it.code, it.quantity, it.unitCost) }
+                val total = BudgetUiLogic.total(uiItems)
+                val subtotalsByTitle = BudgetUiLogic.subtotalsByTitle(uiItems)
 
                 Column(
                     modifier = Modifier
@@ -138,7 +141,8 @@ class MainActivity : ComponentActivity() {
                             Text("Actualizar ítem")
                         }
                         Button(onClick = {
-                            exportStatus = "Reporte CSV generado (mock): report-${selectedProject?.id ?: "NA"}.csv"
+                            val filename = BudgetUiLogic.reportFileName(selectedProject?.id ?: "NA", "android")
+                            exportStatus = "Reporte CSV generado (mock): $filename"
                         }) {
                             Text("Exportar CSV")
                         }

@@ -4,5 +4,6 @@ include(
     "mas-api",
     "mas-core",
     "mas-desktop",
-    "mas-android"
+    "mas-android",
+    "mas-shared-ui"
 )

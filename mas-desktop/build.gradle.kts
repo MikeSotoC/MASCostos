@@ -7,6 +7,7 @@ plugins {
 dependencies {
     implementation(project(":mas-api"))
     implementation(project(":mas-core"))
+    implementation(project(":mas-shared-ui"))
     implementation("io.github.mkpaz:atlantafx-base:2.0.1")
 }
 

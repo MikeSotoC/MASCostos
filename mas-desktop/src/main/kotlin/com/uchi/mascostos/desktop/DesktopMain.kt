@@ -26,6 +26,8 @@ import javafx.stage.Stage
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import com.uchi.mascostos.shared.ui.BudgetUiLogic
+import com.uchi.mascostos.shared.ui.UiCostItem
 
 class DesktopMain : Application() {
     override fun start(stage: Stage) {
@@ -101,10 +103,8 @@ class DesktopMain : Application() {
             val items = services.projectGateway.listProjectItems(projectId)
             projectItems.setAll(items)
 
-            val subtotals = items.groupBy { it.titleName }
-                .mapValues { (_, rows) -> rows.sumOf { it.subtotal } }
-                .toSortedMap()
-
+            val uiItems = items.map { UiCostItem(it.titleName, it.costCode, it.quantity, it.unitCost) }
+            val subtotals = BudgetUiLogic.subtotalsByTitle(uiItems)
             subtotalByTitleArea.text = subtotals.entries.joinToString("\n") { (title, subtotal) ->
                 "$title: ${"%.2f".format(subtotal)}"
             }
@@ -186,7 +186,7 @@ class DesktopMain : Application() {
         exportCsvButton.setOnAction {
             val projectId = selectedProjectId() ?: return@setOnAction
             val stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
-            val out = Paths.get("report-${projectId}-$stamp.csv")
+            val out = Paths.get(BudgetUiLogic.reportFileName(projectId, stamp))
             services.reportGateway.exportProjectCsv(projectId, out)
             exportStatusLabel.text = "Reporte CSV generado: ${out.toAbsolutePath()}"
         }
