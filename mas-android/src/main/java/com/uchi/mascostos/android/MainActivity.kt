@@ -86,7 +86,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-                val appService: BudgetAppService = remember { FakeBudgetAppService() }
+                var serviceStatus by remember { mutableStateOf("Servicio: remoto") }
+                val appService: BudgetAppService = remember {
+                    try {
+                        RemoteBudgetAppService().also { it.listProjects() }
+                    } catch (_: Exception) {
+                        serviceStatus = "Servicio: mock (backend no disponible)"
+                        FakeBudgetAppService()
+                    }
+                }
                 var projects by remember { mutableStateOf(appService.listProjects()) }
                 var selectedProject by remember { mutableStateOf(projects.firstOrNull()) }
                 var budgets by remember { mutableStateOf(selectedProject?.let { appService.listBudgetsForProject(it.id) } ?: emptyList()) }
@@ -110,7 +118,7 @@ class MainActivity : ComponentActivity() {
 
                 Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("MASCostos Android (preparado para servicio real)", style = MaterialTheme.typography.titleMedium)
-                    Text("Nota: hoy usa FakeBudgetAppService; siguiente paso conectar servicio real desde core/backend.")
+                    Text(serviceStatus)
 
                     Text("Proyectos")
                     LazyColumn(Modifier.fillMaxWidth().weight(0.7f, false)) {

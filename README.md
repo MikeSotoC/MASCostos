@@ -40,10 +40,11 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 11. **Lógica UI compartida** entre Desktop/Android para totalización y convención de reportes.
 12. **Contrato de aplicación unificado** (`BudgetAppService`) con implementación core y mock Android.
 13. **Backend HTTP Ktor** con endpoints de proyectos, presupuestos, catálogo, ítems y export CSV.
+14. **Android preparado para backend real** (`RemoteBudgetAppService`) con fallback automático a mock.
 
 ## Falta implementar
 
-- Integrar Android con `mas-backend` (reemplazar `FakeBudgetAppService`).
+- Conectar Android 100% a backend (el fallback a mock aún existe).
 - Reportes/exportación PDF real.
 - Sistema formal de plugins con versionado, permisos y firma.
 - Validaciones avanzadas de negocio (costos bloqueados, reglas por tipo de partida).
@@ -51,8 +52,8 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 
 ## Siguiente acción recomendada
 
-Implementar **cliente Android real contra `mas-backend`**:
+Implementar **consolidación Android real (sin fallback)**:
 
-1. cliente HTTP para consumir `/projects`, `/budgets`, `/catalog`, `/items`,
-2. reemplazar mock data Android por respuestas del backend,
-3. mantener `mas-shared-ui` como lógica común de presentación y cálculos.
+1. completar operaciones backend (errores/reintentos/estados de carga),
+2. remover `FakeBudgetAppService` cuando backend esté estable,
+3. añadir autenticación y configuración de endpoint por entorno.
