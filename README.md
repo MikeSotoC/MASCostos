@@ -37,6 +37,7 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 9. **Reporte CSV** exportable desde desktop (resumen/detalle por ítems).
 10. **Android UI paralela** con módulos visuales equivalentes.
 11. **Lógica UI compartida** entre Desktop/Android para totalización y convención de reportes.
+12. **Contrato de aplicación unificado** (`BudgetAppService`) con implementación core y mock Android para facilitar la futura conexión real.
 
 ## Falta implementar
 

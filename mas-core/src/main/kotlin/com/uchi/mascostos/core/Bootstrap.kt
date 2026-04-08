@@ -10,6 +10,7 @@ import com.uchi.mascostos.core.sqlite.SqliteBudgetStructureRepository
 import com.uchi.mascostos.core.sqlite.SqliteCostCatalogRepository
 import com.uchi.mascostos.core.sqlite.SqliteProjectItemRepository
 import com.uchi.mascostos.core.sqlite.SqliteProjectRepository
+import com.uchi.mascostos.core.app.CoreBudgetAppService
 import java.nio.file.Path
 
 data class AppServices(
@@ -53,3 +54,6 @@ object Bootstrap {
         )
     }
 }
+
+
+fun AppServices.asBudgetAppService(): CoreBudgetAppService = CoreBudgetAppService(this)

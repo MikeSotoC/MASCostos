@@ -19,20 +19,65 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.uchi.mascostos.api.model.BudgetCatalogItem
+import com.uchi.mascostos.api.model.BudgetOption
+import com.uchi.mascostos.api.model.ProjectCostItem
+import com.uchi.mascostos.api.model.ProjectRef
+import com.uchi.mascostos.api.service.BudgetAppService
 import com.uchi.mascostos.shared.ui.BudgetUiLogic
 import com.uchi.mascostos.shared.ui.UiCostItem
+import java.nio.file.Path
+import java.nio.file.Paths
 
-data class AndroidProject(val id: String, val name: String)
-data class AndroidBudget(val id: String, val name: String)
-data class AndroidCatalogItem(val title: String, val code: String, val description: String, val unitCost: Double)
-data class AndroidProjectItem(val title: String, val code: String, val description: String, var quantity: Double, val unitCost: Double) {
-    val subtotal: Double get() = quantity * unitCost
+private class FakeBudgetAppService : BudgetAppService {
+    private val projects = mutableListOf(ProjectRef("P001", "Proyecto Demo"))
+    private val budgets = mutableMapOf(
+        "P001" to listOf(BudgetOption("B001", "Presupuesto Base"))
+    )
+    private val catalog = mapOf(
+        "P001:B001" to listOf(
+            BudgetCatalogItem("T001", "Obras preliminares", "CU001", "Trazo y replanteo", "m2", 120.0),
+            BudgetCatalogItem("T002", "Estructuras", "CU002", "Concreto f'c=210", "m3", 380.0),
+        )
+    )
+    private val projectItems = mutableMapOf<String, MutableList<ProjectCostItem>>()
+
+    override fun listProjects(): List<ProjectRef> = projects.toList()
+
+    override fun createProject(name: String, location: String?): ProjectRef {
+        val id = "P" + (projects.size + 1).toString().padStart(3, '0')
+        val p = ProjectRef(id, name)
+        projects += p
+        budgets[id] = listOf(BudgetOption("B$id", "Presupuesto $name"))
+        return p
+    }
+
+    override fun listBudgetsForProject(projectId: String): List<BudgetOption> = budgets[projectId] ?: emptyList()
+
+    override fun listCatalogForProject(projectId: String, budgetId: String?): List<BudgetCatalogItem> {
+        return catalog["$projectId:${budgetId ?: ""}"] ?: emptyList()
+    }
+
+    override fun listProjectItems(projectId: String): List<ProjectCostItem> = projectItems[projectId]?.toList() ?: emptyList()
+
+    override fun upsertProjectItem(projectId: String, costCode: String, quantity: Double) {
+        val target = projectItems.getOrPut(projectId) { mutableListOf() }
+        val item = target.firstOrNull { it.costCode == costCode }
+        if (item != null) {
+            target[target.indexOf(item)] = item.copy(quantity = quantity)
+            return
+        }
+
+        val cat = catalog.values.flatten().firstOrNull { it.costCode == costCode } ?: return
+        target += ProjectCostItem(cat.titleName, cat.costCode, cat.description, cat.unit, quantity, cat.unitCost)
+    }
+
+    override fun exportProjectCsv(projectId: String, outputPath: Path): Path = outputPath
 }
 
 class MainActivity : ComponentActivity() {
@@ -41,121 +86,106 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-                val projects = remember { mutableStateListOf(AndroidProject("P001", "Proyecto Demo")) }
-                val budgets = remember { mutableStateListOf(AndroidBudget("B001", "Presupuesto Base")) }
-                val catalog = remember {
-                    mutableStateListOf(
-                        AndroidCatalogItem("Obras preliminares", "CU001", "Trazo y replanteo", 120.0),
-                        AndroidCatalogItem("Estructuras", "CU002", "Concreto f'c=210", 380.0),
+                val appService: BudgetAppService = remember { FakeBudgetAppService() }
+                var projects by remember { mutableStateOf(appService.listProjects()) }
+                var selectedProject by remember { mutableStateOf(projects.firstOrNull()) }
+                var budgets by remember { mutableStateOf(selectedProject?.let { appService.listBudgetsForProject(it.id) } ?: emptyList()) }
+                var selectedBudget by remember { mutableStateOf(budgets.firstOrNull()) }
+                var catalog by remember {
+                    mutableStateOf(
+                        selectedProject?.let { p -> appService.listCatalogForProject(p.id, selectedBudget?.id) } ?: emptyList()
                     )
                 }
-                val projectItems = remember { mutableStateListOf<AndroidProjectItem>() }
-
-                var selectedProject by remember { mutableStateOf<AndroidProject?>(projects.firstOrNull()) }
-                var selectedBudget by remember { mutableStateOf<AndroidBudget?>(budgets.firstOrNull()) }
-                var selectedCatalogItem by remember { mutableStateOf<AndroidCatalogItem?>(null) }
-                var selectedProjectItem by remember { mutableStateOf<AndroidProjectItem?>(null) }
+                var selectedCatalogItem by remember { mutableStateOf<BudgetCatalogItem?>(null) }
+                var projectItems by remember { mutableStateOf(selectedProject?.let { appService.listProjectItems(it.id) } ?: emptyList()) }
+                var selectedProjectItem by remember { mutableStateOf<ProjectCostItem?>(null) }
 
                 var quantityToAdd by remember { mutableStateOf("1") }
                 var quantityToEdit by remember { mutableStateOf("") }
                 var exportStatus by remember { mutableStateOf("Reporte: pendiente") }
 
-                val uiItems = projectItems.map { UiCostItem(it.title, it.code, it.quantity, it.unitCost) }
+                val uiItems = projectItems.map { UiCostItem(it.titleName, it.costCode, it.quantity, it.unitCost) }
                 val total = BudgetUiLogic.total(uiItems)
                 val subtotalsByTitle = BudgetUiLogic.subtotalsByTitle(uiItems)
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text("MASCostos Android (UI alineada con Desktop)", style = MaterialTheme.typography.titleMedium)
+                Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("MASCostos Android (preparado para servicio real)", style = MaterialTheme.typography.titleMedium)
+                    Text("Nota: hoy usa FakeBudgetAppService; siguiente paso conectar servicio real desde core/backend.")
 
                     Text("Proyectos")
-                    LazyColumn(modifier = Modifier.fillMaxWidth().weight(0.8f, fill = false)) {
+                    LazyColumn(Modifier.fillMaxWidth().weight(0.7f, false)) {
                         items(projects) { p ->
-                            Card(modifier = Modifier.fillMaxWidth().clickable { selectedProject = p }) {
-                                Text("${p.name} (${p.id})", modifier = Modifier.padding(8.dp))
-                            }
+                            Card(Modifier.fillMaxWidth().clickable {
+                                selectedProject = p
+                                budgets = appService.listBudgetsForProject(p.id)
+                                selectedBudget = budgets.firstOrNull()
+                                catalog = appService.listCatalogForProject(p.id, selectedBudget?.id)
+                                projectItems = appService.listProjectItems(p.id)
+                            }) { Text("${p.name} (${p.id})", Modifier.padding(8.dp)) }
                         }
                     }
-                    Text("Proyecto activo: ${selectedProject?.name ?: "-"}")
 
                     Text("Presupuesto activo")
-                    LazyColumn(modifier = Modifier.fillMaxWidth().weight(0.6f, fill = false)) {
+                    LazyColumn(Modifier.fillMaxWidth().weight(0.5f, false)) {
                         items(budgets) { b ->
-                            Card(modifier = Modifier.fillMaxWidth().clickable { selectedBudget = b }) {
-                                Text("${b.name} (${b.id})", modifier = Modifier.padding(8.dp))
-                            }
+                            Card(Modifier.fillMaxWidth().clickable {
+                                selectedBudget = b
+                                val pid = selectedProject?.id ?: return@clickable
+                                catalog = appService.listCatalogForProject(pid, b.id)
+                            }) { Text("${b.name} (${b.id})", Modifier.padding(8.dp)) }
                         }
                     }
-                    Text("Presupuesto seleccionado: ${selectedBudget?.name ?: "-"}")
 
-                    Text("Estructura (equivalente al árbol desktop)")
-                    LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
+                    Text("Estructura")
+                    LazyColumn(Modifier.fillMaxWidth().weight(1f, false)) {
                         items(catalog) { c ->
-                            Card(modifier = Modifier.fillMaxWidth().clickable { selectedCatalogItem = c }) {
-                                Text("${c.title} | ${c.code} - ${c.description} (S/ ${c.unitCost})", modifier = Modifier.padding(8.dp))
+                            Card(Modifier.fillMaxWidth().clickable { selectedCatalogItem = c }) {
+                                Text("${c.titleName} | ${c.costCode} - ${c.description} (S/ ${c.unitCost})", Modifier.padding(8.dp))
                             }
                         }
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = quantityToAdd, onValueChange = { quantityToAdd = it }, label = { Text("Cantidad") })
+                        OutlinedTextField(quantityToAdd, { quantityToAdd = it }, label = { Text("Cantidad") })
                         Button(onClick = {
-                            val sel = selectedCatalogItem ?: return@Button
+                            val pid = selectedProject?.id ?: return@Button
+                            val code = selectedCatalogItem?.costCode ?: return@Button
                             val qty = quantityToAdd.toDoubleOrNull() ?: return@Button
-                            val existing = projectItems.find { it.code == sel.code }
-                            if (existing != null) {
-                                existing.quantity = qty
-                            } else {
-                                projectItems.add(
-                                    AndroidProjectItem(sel.title, sel.code, sel.description, qty, sel.unitCost)
-                                )
-                            }
-                        }) {
-                            Text("Agregar selección")
-                        }
+                            appService.upsertProjectItem(pid, code, qty)
+                            projectItems = appService.listProjectItems(pid)
+                        }) { Text("Agregar selección") }
                     }
 
-                    Text("Ítems agregados")
-                    LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
+                    Text("Ítems")
+                    LazyColumn(Modifier.fillMaxWidth().weight(1f, false)) {
                         items(projectItems) { it ->
-                            Card(modifier = Modifier.fillMaxWidth().clickable { selectedProjectItem = it }) {
-                                Text(
-                                    "${it.title} | ${it.code} - ${it.description} | ${it.quantity} x ${it.unitCost} = ${"%.2f".format(it.subtotal)}",
-                                    modifier = Modifier.padding(8.dp)
-                                )
+                            Card(Modifier.fillMaxWidth().clickable { selectedProjectItem = it }) {
+                                Text("${it.titleName} | ${it.costCode} | ${it.quantity} x ${it.unitCost} = ${"%.2f".format(it.subtotal)}", Modifier.padding(8.dp))
                             }
                         }
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = quantityToEdit, onValueChange = { quantityToEdit = it }, label = { Text("Nueva cantidad") })
+                        OutlinedTextField(quantityToEdit, { quantityToEdit = it }, label = { Text("Nueva cantidad") })
                         Button(onClick = {
+                            val pid = selectedProject?.id ?: return@Button
                             val item = selectedProjectItem ?: return@Button
                             val qty = quantityToEdit.toDoubleOrNull() ?: return@Button
-                            item.quantity = qty
-                        }) {
-                            Text("Actualizar ítem")
-                        }
+                            appService.upsertProjectItem(pid, item.costCode, qty)
+                            projectItems = appService.listProjectItems(pid)
+                        }) { Text("Actualizar ítem") }
                         Button(onClick = {
-                            val filename = BudgetUiLogic.reportFileName(selectedProject?.id ?: "NA", "android")
-                            exportStatus = "Reporte CSV generado (mock): $filename"
-                        }) {
-                            Text("Exportar CSV")
-                        }
+                            val pid = selectedProject?.id ?: "NA"
+                            val filename = BudgetUiLogic.reportFileName(pid, "android")
+                            appService.exportProjectCsv(pid, Paths.get(filename))
+                            exportStatus = "Reporte CSV generado: $filename"
+                        }) { Text("Exportar CSV") }
                     }
 
                     Text("Subtotales por título")
-                    subtotalsByTitle.forEach { (title, subtotal) ->
-                        Text("$title: ${"%.2f".format(subtotal)}")
-                    }
-
-                    Text("Total estimado: ${"%.2f".format(total)}")
+                    subtotalsByTitle.forEach { (title, subtotal) -> Text("$title: ${"%.2f".format(subtotal)}") }
+                    Text("Total: ${"%.2f".format(total)}")
                     Text(exportStatus)
-                    Text("Siguiente acción: conectar esta UI a gateways reales compartidos con desktop")
                 }
             }
         }
