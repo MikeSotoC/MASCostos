@@ -76,6 +76,7 @@ fun Application.module() {
 
                 post("/items") {
                     if (!isAuthorized(call)) return@post call.respond(HttpStatusCode.Unauthorized)
+                    if (!hasRole(call, "editor")) return@post call.respond(HttpStatusCode.Forbidden)
                     val projectId = call.parameters["projectId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
                     val req = call.receive<UpsertItemRequest>()
                     appService.upsertProjectItem(projectId, req.code, req.quantity)
@@ -84,6 +85,7 @@ fun Application.module() {
 
                 post("/export-csv") {
                     if (!isAuthorized(call)) return@post call.respond(HttpStatusCode.Unauthorized)
+                    if (!hasRole(call, "reporter")) return@post call.respond(HttpStatusCode.Forbidden)
                     val projectId = call.parameters["projectId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
                     val req = call.receive<ExportFileRequest>()
                     val path = req.outputPath ?: "report-$projectId.csv"
@@ -93,6 +95,7 @@ fun Application.module() {
 
                 post("/export-pdf") {
                     if (!isAuthorized(call)) return@post call.respond(HttpStatusCode.Unauthorized)
+                    if (!hasRole(call, "reporter")) return@post call.respond(HttpStatusCode.Forbidden)
                     val projectId = call.parameters["projectId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
                     val req = call.receive<ExportFileRequest>()
                     val path = req.outputPath ?: "report-$projectId.pdf"
@@ -109,4 +112,11 @@ private fun isAuthorized(call: io.ktor.server.application.ApplicationCall): Bool
     if (expected.isBlank()) return true
     val bearer = call.request.headers["Authorization"]?.removePrefix("Bearer ")?.trim().orEmpty()
     return bearer == expected
+}
+
+private fun hasRole(call: io.ktor.server.application.ApplicationCall, required: String): Boolean {
+    val configured = System.getenv("MASCOSTOS_ENFORCE_ROLES")?.trim().orEmpty().equals("true", ignoreCase = true)
+    if (!configured) return true
+    val role = call.request.headers["X-Role"]?.trim().orEmpty()
+    return role.equals(required, ignoreCase = true) || role.equals("admin", ignoreCase = true)
 }

@@ -48,7 +48,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-                val appService: BudgetAppService = remember { RemoteBudgetAppService() }
+                val appService: BudgetAppService = remember {
+                    RemoteBudgetAppService(
+                        config = RemoteBudgetAppService.RemoteConfig(
+                            baseUrl = BuildConfig.API_BASE_URL,
+                            maxRetries = BuildConfig.API_MAX_RETRIES,
+                            authToken = BuildConfig.API_TOKEN.ifBlank { null },
+                        ),
+                    )
+                }
                 val scope = rememberCoroutineScope()
 
                 var projects by remember { mutableStateOf<List<ProjectRef>>(emptyList()) }
@@ -116,6 +124,11 @@ class MainActivity : ComponentActivity() {
 
                     Text("Proyectos", style = MaterialTheme.typography.titleSmall)
                     LazyColumn(Modifier.fillMaxWidth().weight(0.7f, false)) {
+                        if (isLoading && projects.isEmpty()) {
+                            items((1..3).toList()) {
+                                Card(Modifier.fillMaxWidth()) { Text("Cargando proyecto...", Modifier.padding(10.dp)) }
+                            }
+                        }
                         items(projects) { p ->
                             Card(
                                 Modifier.fillMaxWidth().clickable {
@@ -133,6 +146,11 @@ class MainActivity : ComponentActivity() {
 
                     Text("Presupuesto activo", style = MaterialTheme.typography.titleSmall)
                     LazyColumn(Modifier.fillMaxWidth().weight(0.5f, false)) {
+                        if (isLoading && budgets.isEmpty()) {
+                            items((1..2).toList()) {
+                                Card(Modifier.fillMaxWidth()) { Text("Cargando presupuesto...", Modifier.padding(10.dp)) }
+                            }
+                        }
                         items(budgets) { b ->
                             Card(Modifier.fillMaxWidth().clickable {
                                 selectedBudget = b
@@ -146,6 +164,11 @@ class MainActivity : ComponentActivity() {
 
                     Text("Estructura", style = MaterialTheme.typography.titleSmall)
                     LazyColumn(Modifier.fillMaxWidth().weight(1f, false)) {
+                        if (isLoading && catalog.isEmpty()) {
+                            items((1..4).toList()) {
+                                Card(Modifier.fillMaxWidth()) { Text("Cargando catálogo...", Modifier.padding(10.dp)) }
+                            }
+                        }
                         items(catalog) { c ->
                             Card(Modifier.fillMaxWidth().clickable { selectedCatalogItem = c }) {
                                 Text("${c.titleName} | ${c.costCode} - ${c.description} (S/ ${c.unitCost})", Modifier.padding(10.dp))
@@ -168,6 +191,11 @@ class MainActivity : ComponentActivity() {
 
                     Text("Ítems", style = MaterialTheme.typography.titleSmall)
                     LazyColumn(Modifier.fillMaxWidth().weight(1f, false)) {
+                        if (isLoading && projectItems.isEmpty()) {
+                            items((1..3).toList()) {
+                                Card(Modifier.fillMaxWidth()) { Text("Cargando ítems...", Modifier.padding(10.dp)) }
+                            }
+                        }
                         items(projectItems) { it ->
                             Card(Modifier.fillMaxWidth().clickable { selectedProjectItem = it }) {
                                 Text("${it.titleName} | ${it.costCode} | ${it.quantity} x ${it.unitCost} = ${"%.2f".format(it.subtotal)}", Modifier.padding(10.dp))

@@ -44,13 +44,15 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 15. **Cliente Android robustecido**: reintentos, timeouts configurables, cache GET corta y token Bearer opcional.
 16. **Exportación PDF real** disponible en backend/core y clientes Desktop/Android.
 17. **Hardening de plugins/validaciones**: validación de firma/versionado para carga de plugins y controles de negocio extra en alta de ítems.
+18. **UX fase 2 parcial**: Android con skeletons de carga y configuración de endpoint/token/reintentos vía `BuildConfig`.
+19. **Backend por rol (opcional)**: modo de enforcement por encabezado `X-Role` para edición/reportes.
 
 ## Falta implementar
 
 - Completar tokens visuales y tematización profunda (modo oscuro, tipografía de marca, componentes dedicados).
 - Sustituir caché en memoria por persistencia local/offline en Android.
 - Evolucionar plugins formales a un manifiesto firmado con validación criptográfica real.
-- Completar reglas avanzadas por tipo de partida y costos bloqueados por contexto de proyecto.
+- Completar reglas avanzadas por tipo de partida, costos bloqueados y controles por usuario/rol.
 - Sincronización bidireccional de metrado con tablas de metrado nativas.
 
 ## Siguiente acción recomendada
