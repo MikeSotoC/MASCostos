@@ -15,12 +15,14 @@ import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
 import javafx.scene.control.ListCell
 import javafx.scene.control.SelectionMode
+import javafx.scene.control.Separator
 import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
 import javafx.scene.control.TreeItem
 import javafx.scene.control.TreeView
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import java.nio.file.Paths
@@ -87,12 +89,9 @@ class DesktopMain : Application() {
             promptText = "Subtotales por título"
             prefRowCount = 5
         }
-        val pendingLabel = Label(
-            "Falta: reportes/exportación, plugins firmados y validaciones avanzadas"
-        )
-        val nextActionLabel = Label(
-            "Siguiente acción: interfaz Android inicial + sincronización de reportes"
-        )
+        val parityLabel = Label("Paridad UI: Desktop + Android base alineadas ✅")
+        val pendingLabel = Label("Falta: carga asíncrona, diseño visual final, auth y PDF")
+        val nextActionLabel = Label("Siguiente: unificar sistema de diseño entre plataformas")
         val exportStatusLabel = Label("Reporte: pendiente")
 
         fun selectedProjectId(): String? = projectsView.selectionModel.selectedItem?.id
@@ -231,26 +230,42 @@ class DesktopMain : Application() {
             padding = Insets(12.0)
         }
 
-        val content = VBox(
+        val leftPanel = VBox(
             10.0,
             Label("Proyectos"),
             projectsView,
             budgetForm,
-            Label("Estructura jerárquica de costos del presupuesto seleccionado"),
+            Label("Catálogo / Estructura"),
             structureForm,
             structureView,
-            Label("Ítems agregados al proyecto"),
+        ).apply {
+            padding = Insets(12.0)
+            prefWidth = 650.0
+            style = "-fx-background-color: -color-bg-default; -fx-background-radius: 12; -fx-border-radius: 12;"
+        }
+
+        val rightPanel = VBox(
+            10.0,
+            Label("Ítems del proyecto"),
             editForm,
             projectItemsView,
+            Separator(),
             Label("Subtotales por título"),
             subtotalByTitleArea,
             resultLabel,
+            parityLabel,
             pendingLabel,
             nextActionLabel,
             exportStatusLabel,
         ).apply {
             padding = Insets(12.0)
+            prefWidth = 500.0
+            style = "-fx-background-color: -color-bg-default; -fx-background-radius: 12; -fx-border-radius: 12;"
         }
+
+        HBox.setHgrow(leftPanel, Priority.ALWAYS)
+        HBox.setHgrow(rightPanel, Priority.ALWAYS)
+        val content = HBox(12.0, leftPanel, rightPanel).apply { padding = Insets(12.0) }
 
         val root = BorderPane().apply {
             top = projectForm

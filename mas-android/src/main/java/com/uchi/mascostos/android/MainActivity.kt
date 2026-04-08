@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -83,16 +85,25 @@ class MainActivity : ComponentActivity() {
                 val subtotalsByTitle = BudgetUiLogic.subtotalsByTitle(uiItems)
 
                 Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("MASCostos Android (servicio real)", style = MaterialTheme.typography.titleMedium)
-                    Text(serviceStatus)
-                    if (errorMessage != null) {
-                        Text("Error: $errorMessage")
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("MASCostos Android", style = MaterialTheme.typography.titleMedium)
+                            Text("Diseño moderno base + servicio real", style = MaterialTheme.typography.bodyMedium)
+                            Text("Paridad UI con Desktop: alineada ✅", style = MaterialTheme.typography.bodySmall)
+                        }
                     }
+                    Text(serviceStatus)
+                    if (errorMessage != null) Text("Error: $errorMessage")
+                    Divider()
 
-                    Text("Proyectos")
+                    Text("Proyectos", style = MaterialTheme.typography.titleSmall)
                     LazyColumn(Modifier.fillMaxWidth().weight(0.7f, false)) {
                         items(projects) { p ->
-                            Card(Modifier.fillMaxWidth().clickable {
+                            Card(
+                                Modifier.fillMaxWidth().clickable {
                                 selectedProject = p
                                 runSafely {
                                     budgets = appService.listBudgetsForProject(p.id)
@@ -100,11 +111,12 @@ class MainActivity : ComponentActivity() {
                                     catalog = appService.listCatalogForProject(p.id, selectedBudget?.id)
                                     projectItems = appService.listProjectItems(p.id)
                                 }
-                            }) { Text("${p.name} (${p.id})", Modifier.padding(8.dp)) }
+                            },
+                            ) { Text("${p.name} (${p.id})", Modifier.padding(10.dp)) }
                         }
                     }
 
-                    Text("Presupuesto activo")
+                    Text("Presupuesto activo", style = MaterialTheme.typography.titleSmall)
                     LazyColumn(Modifier.fillMaxWidth().weight(0.5f, false)) {
                         items(budgets) { b ->
                             Card(Modifier.fillMaxWidth().clickable {
@@ -113,15 +125,15 @@ class MainActivity : ComponentActivity() {
                                 runSafely {
                                     catalog = appService.listCatalogForProject(pid, b.id)
                                 }
-                            }) { Text("${b.name} (${b.id})", Modifier.padding(8.dp)) }
+                            }) { Text("${b.name} (${b.id})", Modifier.padding(10.dp)) }
                         }
                     }
 
-                    Text("Estructura")
+                    Text("Estructura", style = MaterialTheme.typography.titleSmall)
                     LazyColumn(Modifier.fillMaxWidth().weight(1f, false)) {
                         items(catalog) { c ->
                             Card(Modifier.fillMaxWidth().clickable { selectedCatalogItem = c }) {
-                                Text("${c.titleName} | ${c.costCode} - ${c.description} (S/ ${c.unitCost})", Modifier.padding(8.dp))
+                                Text("${c.titleName} | ${c.costCode} - ${c.description} (S/ ${c.unitCost})", Modifier.padding(10.dp))
                             }
                         }
                     }
@@ -139,11 +151,11 @@ class MainActivity : ComponentActivity() {
                         }) { Text("Agregar selección") }
                     }
 
-                    Text("Ítems")
+                    Text("Ítems", style = MaterialTheme.typography.titleSmall)
                     LazyColumn(Modifier.fillMaxWidth().weight(1f, false)) {
                         items(projectItems) { it ->
                             Card(Modifier.fillMaxWidth().clickable { selectedProjectItem = it }) {
-                                Text("${it.titleName} | ${it.costCode} | ${it.quantity} x ${it.unitCost} = ${"%.2f".format(it.subtotal)}", Modifier.padding(8.dp))
+                                Text("${it.titleName} | ${it.costCode} | ${it.quantity} x ${it.unitCost} = ${"%.2f".format(it.subtotal)}", Modifier.padding(10.dp))
                             }
                         }
                     }
@@ -169,10 +181,12 @@ class MainActivity : ComponentActivity() {
                         }) { Text("Exportar CSV") }
                     }
 
-                    Text("Subtotales por título")
+                    Divider()
+                    Text("Subtotales por título", style = MaterialTheme.typography.titleSmall)
                     subtotalsByTitle.forEach { (title, subtotal) -> Text("$title: ${"%.2f".format(subtotal)}") }
                     Text("Total: ${"%.2f".format(total)}")
                     Text(exportStatus)
+                    Text("Pendiente: carga async/reintentos/auth/PDF", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

@@ -36,7 +36,7 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 7. **Metrado básico**: edición de cantidad por ítem agregado + subtotales por título en tiempo real.
 8. **Selector de presupuesto activo** por proyecto para filtrar la estructura cargada.
 9. **Reporte CSV** exportable desde desktop (resumen/detalle por ítems).
-10. **Android UI paralela** con módulos visuales equivalentes.
+10. **Android UI paralela** con módulos visuales equivalentes y estilo Material 3 base.
 11. **Lógica UI compartida** entre Desktop/Android para totalización y convención de reportes.
 12. **Contrato de aplicación unificado** (`BudgetAppService`) con implementación core y mock Android.
 13. **Backend HTTP Ktor** con endpoints de proyectos, presupuestos, catálogo, ítems y export CSV.
@@ -44,6 +44,7 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 
 ## Falta implementar
 
+- Sistema de diseño compartido (tokens visuales) para alcanzar paridad visual completa Desktop/Android.
 - Robustecer cliente Android remoto (timeouts/reintentos/caching).
 - Reportes/exportación PDF real.
 - Sistema formal de plugins con versionado, permisos y firma.
@@ -52,8 +53,8 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 
 ## Siguiente acción recomendada
 
-Implementar **endurecimiento de cliente Android remoto**:
+Implementar **sprint de UX + confiabilidad**:
 
-1. ejecutar llamadas asíncronas (coroutines) y estados de carga,
-2. añadir reintentos/timeouts configurables y caching local,
-3. incorporar autenticación y configuración de endpoint por entorno.
+1. ejecutar llamadas asíncronas (coroutines) y estados de carga/skeleton,
+2. unificar sistema visual (espaciados, tipografías, jerarquía de paneles) entre Desktop y Android,
+3. añadir reintentos/timeouts configurables, caching local y autenticación por entorno.
