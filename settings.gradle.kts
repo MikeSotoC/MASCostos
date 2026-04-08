@@ -1,10 +1,10 @@
-rootProject.name = "MASCostos"
+rootProject.name = "mascostos"
 
-include("MAS-Core")
-include("MAS-App")
-include("MAS-Data-Sqlite")
-include("MAS-UI-Desktop")
-include("MAS-Core")
-include("MAS-App")
-include("MAS-Data-Sqlite")
-include("MAS-UI-Desktop")
+include(
+    "mas-api",
+    "mas-core",
+    "mas-shared-ui",
+    "mas-desktop",
+    "mas-android",
+    "mas-backend"
+)
