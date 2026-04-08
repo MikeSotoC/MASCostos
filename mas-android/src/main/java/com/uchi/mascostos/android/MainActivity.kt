@@ -51,13 +51,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 val appService: BudgetAppService = remember {
-                    RemoteBudgetAppService(
-                        config = RemoteBudgetAppService.RemoteConfig(
-                            baseUrl = BuildConfig.API_BASE_URL,
-                            maxRetries = BuildConfig.API_MAX_RETRIES,
-                            authToken = BuildConfig.API_TOKEN.ifBlank { null },
-                        ),
-                    )
+                    if (BuildConfig.USE_REMOTE) {
+                        RemoteBudgetAppService(
+                            config = RemoteBudgetAppService.RemoteConfig(
+                                baseUrl = BuildConfig.API_BASE_URL,
+                                maxRetries = BuildConfig.API_MAX_RETRIES,
+                                authToken = BuildConfig.API_TOKEN.ifBlank { null },
+                            ),
+                        )
+                    } else {
+                        LocalBudgetAppService(this@MainActivity)
+                    }
                 }
                 val scope = rememberCoroutineScope()
                 val gson = remember { Gson() }
@@ -75,7 +79,11 @@ class MainActivity : ComponentActivity() {
                 var quantityToAdd by remember { mutableStateOf("1") }
                 var quantityToEdit by remember { mutableStateOf("") }
                 var exportStatus by remember { mutableStateOf("Reporte: pendiente") }
-                var serviceStatus by remember { mutableStateOf("Servicio: remoto") }
+                var serviceStatus by remember {
+                    mutableStateOf(
+                        if (BuildConfig.USE_REMOTE) "Servicio: remoto (opcional)" else "Servicio: SQLite local (predeterminado)"
+                    )
+                }
                 var errorMessage by remember { mutableStateOf<String?>(null) }
                 var isLoading by remember { mutableStateOf(false) }
 

@@ -22,7 +22,7 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 - `mas-core`: dominio, servicios y adaptadores SQLite.
 - `mas-shared-ui`: lógica de UI compartida (subtotales, total y convención de reporte).
 - `mas-desktop`: app JavaFX de escritorio.
-- `mas-android`: app Android Compose con la misma estructura funcional de UI base.
+- `mas-android`: app Android Compose con la misma estructura funcional de UI base (SQLite local por defecto, remoto opcional).
 - `mas-backend`: API HTTP (Ktor) para exponer `mas-core` a clientes externos (incluyendo Android).
 
 ## Funcionalidad implementada en esta fase
@@ -47,6 +47,7 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 18. **UX fase 2 parcial**: Android con skeletons de carga y configuración de endpoint/token/reintentos vía `BuildConfig`.
 19. **Backend por rol (opcional)**: modo de enforcement por encabezado `X-Role` para edición/reportes.
 20. **Cache local básica Android**: snapshot JSON en `SharedPreferences` para arranque con datos offline.
+21. **Modo local-first**: Android y Desktop trabajan con SQLite local; remoto queda como opción de integración.
 
 ## Falta implementar
 
