@@ -37,4 +37,8 @@ class CoreBudgetAppService(
     override fun exportProjectCsv(projectId: String, outputPath: Path): Path {
         return services.reportGateway.exportProjectCsv(projectId, outputPath)
     }
+
+    override fun exportProjectPdf(projectId: String, outputPath: Path): Path {
+        return services.reportGateway.exportProjectPdf(projectId, outputPath)
+    }
 }

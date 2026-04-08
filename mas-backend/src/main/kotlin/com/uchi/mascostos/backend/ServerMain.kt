@@ -19,7 +19,7 @@ import java.nio.file.Paths
 
 data class CreateProjectRequest(val name: String, val location: String?)
 data class UpsertItemRequest(val code: String, val quantity: Double)
-data class ExportCsvRequest(val outputPath: String?)
+data class ExportFileRequest(val outputPath: String?)
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
@@ -44,32 +44,38 @@ fun Application.module() {
 
         route("/projects") {
             get {
+                if (!isAuthorized(call)) return@get call.respond(HttpStatusCode.Unauthorized)
                 call.respond(appService.listProjects())
             }
 
             post {
+                if (!isAuthorized(call)) return@post call.respond(HttpStatusCode.Unauthorized)
                 val req = call.receive<CreateProjectRequest>()
                 call.respond(appService.createProject(req.name, req.location))
             }
 
             route("/{projectId}") {
                 get("/budgets") {
+                    if (!isAuthorized(call)) return@get call.respond(HttpStatusCode.Unauthorized)
                     val projectId = call.parameters["projectId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                     call.respond(appService.listBudgetsForProject(projectId))
                 }
 
                 get("/catalog") {
+                    if (!isAuthorized(call)) return@get call.respond(HttpStatusCode.Unauthorized)
                     val projectId = call.parameters["projectId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                     val budgetId = call.request.queryParameters["budgetId"]
                     call.respond(appService.listCatalogForProject(projectId, budgetId))
                 }
 
                 get("/items") {
+                    if (!isAuthorized(call)) return@get call.respond(HttpStatusCode.Unauthorized)
                     val projectId = call.parameters["projectId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                     call.respond(appService.listProjectItems(projectId))
                 }
 
                 post("/items") {
+                    if (!isAuthorized(call)) return@post call.respond(HttpStatusCode.Unauthorized)
                     val projectId = call.parameters["projectId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
                     val req = call.receive<UpsertItemRequest>()
                     appService.upsertProjectItem(projectId, req.code, req.quantity)
@@ -77,13 +83,30 @@ fun Application.module() {
                 }
 
                 post("/export-csv") {
+                    if (!isAuthorized(call)) return@post call.respond(HttpStatusCode.Unauthorized)
                     val projectId = call.parameters["projectId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
-                    val req = call.receive<ExportCsvRequest>()
+                    val req = call.receive<ExportFileRequest>()
                     val path = req.outputPath ?: "report-$projectId.csv"
                     val file = appService.exportProjectCsv(projectId, Paths.get(path))
+                    call.respond(mapOf("output" to file.toAbsolutePath().toString()))
+                }
+
+                post("/export-pdf") {
+                    if (!isAuthorized(call)) return@post call.respond(HttpStatusCode.Unauthorized)
+                    val projectId = call.parameters["projectId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val req = call.receive<ExportFileRequest>()
+                    val path = req.outputPath ?: "report-$projectId.pdf"
+                    val file = appService.exportProjectPdf(projectId, Paths.get(path))
                     call.respond(mapOf("output" to file.toAbsolutePath().toString()))
                 }
             }
         }
     }
+}
+
+private fun isAuthorized(call: io.ktor.server.application.ApplicationCall): Boolean {
+    val expected = System.getenv("MASCOSTOS_API_TOKEN")?.trim().orEmpty()
+    if (expected.isBlank()) return true
+    val bearer = call.request.headers["Authorization"]?.removePrefix("Bearer ")?.trim().orEmpty()
+    return bearer == expected
 }

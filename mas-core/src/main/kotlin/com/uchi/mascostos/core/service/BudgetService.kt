@@ -14,6 +14,11 @@ import com.uchi.mascostos.core.ports.BudgetStructureRepository
 import com.uchi.mascostos.core.ports.CostCatalogRepository
 import com.uchi.mascostos.core.ports.ProjectItemRepository
 import com.uchi.mascostos.core.ports.ProjectRepository
+import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.pdmodel.PDPage
+import org.apache.pdfbox.pdmodel.PDPageContentStream
+import org.apache.pdfbox.pdmodel.common.PDRectangle
+import org.apache.pdfbox.pdmodel.font.PDType1Font
 import java.nio.file.Path
 
 class BudgetService(
@@ -33,8 +38,11 @@ class BudgetService(
     }
 
     override fun addProjectItem(projectId: String, costCode: String, quantity: Double) {
+        require(projectRepository.list().any { it.id == projectId }) { "Proyecto no encontrado: $projectId" }
         require(costCode.isNotBlank()) { "El código de costo no puede estar vacío" }
         require(quantity > 0) { "La cantidad debe ser mayor a cero" }
+        require(quantity <= 1_000_000) { "La cantidad supera el límite permitido" }
+        require(costCatalogRepository.findByCodes(setOf(costCode)).isNotEmpty()) { "Código de costo inválido: $costCode" }
         projectItemRepository.addItem(projectId = projectId, code = costCode, quantity = quantity)
     }
 
@@ -84,6 +92,44 @@ class BudgetService(
         }
 
         outputPath.toFile().writeText("$header\n$rows")
+        return outputPath
+    }
+
+    override fun exportProjectPdf(projectId: String, outputPath: Path): Path {
+        val items = listProjectItems(projectId)
+        val total = items.sumOf { it.subtotal }
+
+        PDDocument().use { document ->
+            val page = PDPage(PDRectangle.A4)
+            document.addPage(page)
+
+            PDPageContentStream(document, page).use { content ->
+                content.beginText()
+                content.setFont(PDType1Font.HELVETICA_BOLD, 14f)
+                content.newLineAtOffset(48f, 800f)
+                content.showText("MASCostos - Reporte de Proyecto $projectId")
+                content.endText()
+
+                var y = 775f
+                content.setFont(PDType1Font.HELVETICA, 10f)
+                items.take(45).forEach { item ->
+                    content.beginText()
+                    content.newLineAtOffset(48f, y)
+                    content.showText("${item.costCode} | ${item.description.take(56)} | qty ${item.quantity} | sub ${"%.2f".format(item.subtotal)}")
+                    content.endText()
+                    y -= 14f
+                }
+
+                content.beginText()
+                content.setFont(PDType1Font.HELVETICA_BOLD, 12f)
+                content.newLineAtOffset(48f, 80f)
+                content.showText("TOTAL: ${"%.2f".format(total)}")
+                content.endText()
+            }
+
+            outputPath.toFile().parentFile?.mkdirs()
+            document.save(outputPath.toFile())
+        }
         return outputPath
     }
 

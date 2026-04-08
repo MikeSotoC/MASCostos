@@ -29,6 +29,7 @@ import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import com.uchi.mascostos.shared.ui.BudgetUiLogic
+import com.uchi.mascostos.shared.ui.MasDesignSystem
 import com.uchi.mascostos.shared.ui.UiCostItem
 
 class DesktopMain : Application() {
@@ -82,6 +83,7 @@ class DesktopMain : Application() {
         val updateSelectedItemButton = Button("Actualizar ítem")
         val estimateButton = Button("Calcular presupuesto")
         val exportCsvButton = Button("Exportar CSV")
+        val exportPdfButton = Button("Exportar PDF")
 
         val resultLabel = Label("Total estimado: 0.00")
         val subtotalByTitleArea = TextArea().apply {
@@ -89,8 +91,8 @@ class DesktopMain : Application() {
             promptText = "Subtotales por título"
             prefRowCount = 5
         }
-        val parityLabel = Label("Paridad UI: Desktop + Android base alineadas ✅")
-        val pendingLabel = Label("Falta: carga asíncrona, diseño visual final, auth y PDF")
+        val parityLabel = Label("Paridad UI: ${MasDesignSystem.StatusText.parityAligned}")
+        val pendingLabel = Label("Falta: ${MasDesignSystem.StatusText.pendingRoadmap}")
         val nextActionLabel = Label("Siguiente: unificar sistema de diseño entre plataformas")
         val exportStatusLabel = Label("Reporte: pendiente")
 
@@ -190,6 +192,13 @@ class DesktopMain : Application() {
             exportStatusLabel.text = "Reporte CSV generado: ${out.toAbsolutePath()}"
         }
 
+        exportPdfButton.setOnAction {
+            val projectId = selectedProjectId() ?: return@setOnAction
+            val out = Paths.get("report-$projectId-desktop.pdf")
+            services.reportGateway.exportProjectPdf(projectId, out)
+            exportStatusLabel.text = "Reporte PDF generado: ${out.toAbsolutePath()}"
+        }
+
         estimateButton.setOnAction {
             val projectId = selectedProjectId() ?: return@setOnAction
             val result = services.budgetGateway.estimate(projectId)
@@ -222,7 +231,7 @@ class DesktopMain : Application() {
             padding = Insets(12.0)
         }
 
-        val structureForm = HBox(8.0, quantityField, addSelectedButton, estimateButton, exportCsvButton).apply {
+        val structureForm = HBox(8.0, quantityField, addSelectedButton, estimateButton, exportCsvButton, exportPdfButton).apply {
             padding = Insets(12.0)
         }
 
@@ -231,7 +240,7 @@ class DesktopMain : Application() {
         }
 
         val leftPanel = VBox(
-            10.0,
+            MasDesignSystem.Spacing.section,
             Label("Proyectos"),
             projectsView,
             budgetForm,
@@ -245,7 +254,7 @@ class DesktopMain : Application() {
         }
 
         val rightPanel = VBox(
-            10.0,
+            MasDesignSystem.Spacing.section,
             Label("Ítems del proyecto"),
             editForm,
             projectItemsView,
@@ -265,7 +274,7 @@ class DesktopMain : Application() {
 
         HBox.setHgrow(leftPanel, Priority.ALWAYS)
         HBox.setHgrow(rightPanel, Priority.ALWAYS)
-        val content = HBox(12.0, leftPanel, rightPanel).apply { padding = Insets(12.0) }
+        val content = HBox(MasDesignSystem.Spacing.card, leftPanel, rightPanel).apply { padding = Insets(12.0) }
 
         val root = BorderPane().apply {
             top = projectForm

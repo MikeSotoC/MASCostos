@@ -41,20 +41,22 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 12. **Contrato de aplicación unificado** (`BudgetAppService`) con implementación core y mock Android.
 13. **Backend HTTP Ktor** con endpoints de proyectos, presupuestos, catálogo, ítems y export CSV.
 14. **Android conectado al backend real** (`RemoteBudgetAppService`) con manejo básico de errores de conexión.
+15. **Cliente Android robustecido**: reintentos, timeouts configurables, cache GET corta y token Bearer opcional.
+16. **Exportación PDF real** disponible en backend/core y clientes Desktop/Android.
+17. **Hardening de plugins/validaciones**: validación de firma/versionado para carga de plugins y controles de negocio extra en alta de ítems.
 
 ## Falta implementar
 
-- Sistema de diseño compartido (tokens visuales) para alcanzar paridad visual completa Desktop/Android.
-- Robustecer cliente Android remoto (timeouts/reintentos/caching).
-- Reportes/exportación PDF real.
-- Sistema formal de plugins con versionado, permisos y firma.
-- Validaciones avanzadas de negocio (costos bloqueados, reglas por tipo de partida).
+- Completar tokens visuales y tematización profunda (modo oscuro, tipografía de marca, componentes dedicados).
+- Sustituir caché en memoria por persistencia local/offline en Android.
+- Evolucionar plugins formales a un manifiesto firmado con validación criptográfica real.
+- Completar reglas avanzadas por tipo de partida y costos bloqueados por contexto de proyecto.
 - Sincronización bidireccional de metrado con tablas de metrado nativas.
 
 ## Siguiente acción recomendada
 
-Implementar **sprint de UX + confiabilidad**:
+Continuar con **sprint UX + confiabilidad (fase 2)**:
 
-1. ejecutar llamadas asíncronas (coroutines) y estados de carga/skeleton,
-2. unificar sistema visual (espaciados, tipografías, jerarquía de paneles) entre Desktop y Android,
-3. añadir reintentos/timeouts configurables, caching local y autenticación por entorno.
+1. completar skeleton/loading states y flujos de error accionables,
+2. consolidar sistema de diseño compartido en componentes reutilizables,
+3. agregar autenticación por usuario/rol y cache persistente para trabajo offline.

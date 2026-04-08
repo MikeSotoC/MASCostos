@@ -25,4 +25,5 @@ interface BudgetCatalogGateway {
 
 interface ReportGateway {
     fun exportProjectCsv(projectId: String, outputPath: Path): Path
+    fun exportProjectPdf(projectId: String, outputPath: Path): Path
 }

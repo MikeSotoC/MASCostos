@@ -17,4 +17,5 @@ interface BudgetAppService {
     fun listProjectItems(projectId: String): List<ProjectCostItem>
     fun upsertProjectItem(projectId: String, costCode: String, quantity: Double)
     fun exportProjectCsv(projectId: String, outputPath: Path): Path
+    fun exportProjectPdf(projectId: String, outputPath: Path): Path
 }
