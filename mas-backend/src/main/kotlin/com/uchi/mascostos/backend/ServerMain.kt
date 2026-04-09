@@ -49,6 +49,19 @@ fun Application.module() {
             auth.audit(UserContext(req.username, result.role), "/auth/login", "LOGIN")
             call.respond(result)
         }
+        get("/auth/users") {
+            val user = authorizeCall(call, auth, Permission.ADMIN) ?: return@get call.respond(HttpStatusCode.Forbidden)
+            auth.audit(user, "/auth/users", "LIST_USERS")
+            call.respond(auth.listUsers())
+        }
+        post("/auth/users") {
+            val user = authorizeCall(call, auth, Permission.ADMIN) ?: return@post call.respond(HttpStatusCode.Forbidden)
+            val req = call.receive<CreateUserRequest>()
+            val created = auth.createUser(req.username, req.password, req.role)
+            auth.audit(user, "/auth/users", "CREATE_USER")
+            if (!created) return@post call.respond(HttpStatusCode.BadRequest, mapOf("error" to "No se pudo crear usuario"))
+            call.respond(HttpStatusCode.Created)
+        }
 
         route("/projects") {
             get {

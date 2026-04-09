@@ -8,6 +8,8 @@ import java.util.concurrent.ConcurrentHashMap
 data class LoginRequest(val username: String, val password: String)
 data class LoginResponse(val token: String, val role: String)
 data class UserContext(val username: String, val role: String)
+data class UserRecord(val username: String, val role: String)
+data class CreateUserRequest(val username: String, val password: String, val role: String)
 
 class AuthSecurityStore {
     private val sessions = ConcurrentHashMap<String, UserContext>()
@@ -60,6 +62,26 @@ class AuthSecurityStore {
         }
     }
 
+    fun listUsers(): List<UserRecord> {
+        val list = mutableListOf<UserRecord>()
+        conn.createStatement().use { st ->
+            st.executeQuery("SELECT username, role FROM users ORDER BY username").use { rs ->
+                while (rs.next()) list += UserRecord(rs.getString(1), rs.getString(2))
+            }
+        }
+        return list
+    }
+
+    fun createUser(username: String, password: String, role: String): Boolean {
+        if (username.isBlank() || password.isBlank() || role.isBlank()) return false
+        return conn.prepareStatement("INSERT OR IGNORE INTO users(username, password, role) VALUES (?, ?, ?)").use { ps ->
+            ps.setString(1, username.trim())
+            ps.setString(2, password.trim())
+            ps.setString(3, role.trim().lowercase())
+            ps.executeUpdate() > 0
+        }
+    }
+
     private fun ensureSchema() {
         conn.createStatement().use { st ->
             st.execute(
@@ -78,4 +100,4 @@ class AuthSecurityStore {
     }
 }
 
-enum class Permission { READ, WRITE, EXPORT }
+enum class Permission { READ, WRITE, EXPORT, ADMIN }

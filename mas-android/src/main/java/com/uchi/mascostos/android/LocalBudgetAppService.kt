@@ -11,6 +11,8 @@ import com.uchi.mascostos.api.service.BudgetAppService
 import java.nio.file.Path
 import java.util.UUID
 
+data class SyncReport(val processed: Int, val synced: Int, val conflicts: Int)
+
 class LocalBudgetAppService(context: Context) : BudgetAppService {
     private val db = LocalDb(context).writableDatabase
 
@@ -120,6 +122,42 @@ class LocalBudgetAppService(context: Context) : BudgetAppService {
         }
         outputPath.toFile().writeText(text)
         return outputPath
+    }
+
+    fun pendingOutboxCount(): Int = db.rawQuery("SELECT COUNT(*) FROM outbox WHERE status = 'PENDING'", null).use {
+        if (it.moveToFirst()) it.getInt(0) else 0
+    }
+
+    fun conflictCount(): Int = db.rawQuery("SELECT COUNT(*) FROM conflicts", null).use {
+        if (it.moveToFirst()) it.getInt(0) else 0
+    }
+
+    fun syncPendingOperations(remote: RemoteBudgetAppService): SyncReport {
+        val rows = mutableListOf<Triple<Long, String, String>>()
+        db.rawQuery(
+            "SELECT id, project_id, cost_code FROM outbox WHERE status = 'PENDING' ORDER BY id",
+            null,
+        ).use { c ->
+            while (c.moveToNext()) rows += Triple(c.getLong(0), c.getString(1), c.getString(2))
+        }
+
+        var synced = 0
+        var conflicts = 0
+        rows.forEach { (id, projectId, costCode) ->
+            try {
+                val qty = db.rawQuery(
+                    "SELECT quantity FROM project_items WHERE project_id = ? AND cost_code = ?",
+                    arrayOf(projectId, costCode),
+                ).use { c -> if (c.moveToFirst()) c.getDouble(0) else 0.0 }
+                remote.upsertProjectItem(projectId, costCode, qty)
+                db.execSQL("UPDATE outbox SET status = 'SYNCED' WHERE id = ?", arrayOf(id))
+                synced++
+            } catch (_: Exception) {
+                db.execSQL("UPDATE outbox SET status = 'CONFLICT' WHERE id = ?", arrayOf(id))
+                conflicts++
+            }
+        }
+        return SyncReport(processed = rows.size, synced = synced, conflicts = conflicts)
     }
 }
 

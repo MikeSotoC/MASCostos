@@ -50,7 +50,7 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 21. **Modo local-first**: Android y Desktop trabajan con SQLite local; remoto queda como opción de integración.
 22. **UI profesional por secciones**: Android y Desktop dejaron el flujo de “pantalla única” y ahora separan navegación por etapas (Proyectos / Catálogo / Ítems-Reportes).
 23. **Offline Android versionado**: tablas locales con versionado, outbox de operaciones pendientes y registro básico de conflictos.
-24. **Seguridad backend E2E**: login real (`/auth/login`), roles persistidos por usuario y auditoría de acciones.
+24. **Seguridad backend E2E**: login real (`/auth/login`), gestión de usuarios/roles (`/auth/users`) y auditoría de acciones.
 25. **Reglas de negocio avanzadas**: motor de validaciones por rubro/tipo con mensajes funcionales.
 
 ## Sistema de configuraciones (Android + Windows/Desktop)

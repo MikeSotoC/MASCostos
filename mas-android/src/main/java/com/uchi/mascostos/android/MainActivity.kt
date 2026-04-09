@@ -90,6 +90,7 @@ class MainActivity : ComponentActivity() {
                 var errorMessage by remember { mutableStateOf<String?>(null) }
                 var isLoading by remember { mutableStateOf(false) }
                 var selectedScreen by remember { mutableStateOf(0) }
+                var syncStatus by remember { mutableStateOf("Sync: pendiente") }
 
                 fun saveCache(projectId: String?) {
                     if (!runtimeConfig.useRemote) return
@@ -245,6 +246,7 @@ class MainActivity : ComponentActivity() {
                             }) { Text("Agregar selección") }
                         }
                     } else {
+                        val localService = appService as? LocalBudgetAppService
                         Text("Ítems", style = MaterialTheme.typography.titleSmall)
                         LazyColumn(Modifier.fillMaxWidth().weight(1f, false)) {
                             if (isLoading && projectItems.isEmpty()) {
@@ -286,6 +288,21 @@ class MainActivity : ComponentActivity() {
                                     exportStatus = "Reporte PDF generado: $filename"
                                 }
                             }) { Text("Exportar PDF") }
+                            if (localService != null) {
+                                Button(onClick = {
+                                    runSafely {
+                                        val remote = RemoteBudgetAppService(
+                                            RemoteBudgetAppService.RemoteConfig(
+                                                baseUrl = runtimeConfig.baseUrl,
+                                                maxRetries = runtimeConfig.maxRetries,
+                                                authToken = runtimeConfig.token,
+                                            ),
+                                        )
+                                        val report = withContext(Dispatchers.IO) { localService.syncPendingOperations(remote) }
+                                        syncStatus = "Sync: ${report.synced}/${report.processed}, conflictos ${report.conflicts}"
+                                    }
+                                }) { Text("Sincronizar pendientes") }
+                            }
                         }
 
                         Divider()
@@ -293,6 +310,10 @@ class MainActivity : ComponentActivity() {
                         subtotalsByTitle.forEach { (title, subtotal) -> Text("$title: ${"%.2f".format(subtotal)}") }
                         Text("Total: ${"%.2f".format(total)}")
                         Text(exportStatus)
+                        if (localService != null) {
+                            Text("Outbox pendiente: ${localService.pendingOutboxCount()} | Conflictos: ${localService.conflictCount()}")
+                        }
+                        Text(syncStatus)
                         Text(MasDesignSystem.StatusText.pendingRoadmap, style = MaterialTheme.typography.bodySmall)
                     }
                 }
