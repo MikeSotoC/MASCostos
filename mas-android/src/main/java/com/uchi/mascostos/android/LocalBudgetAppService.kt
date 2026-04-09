@@ -143,12 +143,26 @@ class LocalBudgetAppService(context: Context) : BudgetAppService {
 
         var synced = 0
         var conflicts = 0
+        val remoteCache = mutableMapOf<String, Map<String, Double>>()
         rows.forEach { (id, projectId, costCode) ->
             try {
                 val qty = db.rawQuery(
                     "SELECT quantity FROM project_items WHERE project_id = ? AND cost_code = ?",
                     arrayOf(projectId, costCode),
                 ).use { c -> if (c.moveToFirst()) c.getDouble(0) else 0.0 }
+                val remoteByCode = remoteCache.getOrPut(projectId) {
+                    remote.listProjectItems(projectId).associate { it.costCode to it.quantity }
+                }
+                val remoteQty = remoteByCode[costCode]
+                if (remoteQty != null && kotlin.math.abs(remoteQty - qty) > 0.0001) {
+                    db.execSQL(
+                        "INSERT INTO conflicts(project_id, cost_code, local_quantity, attempted_quantity, detected_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
+                        arrayOf(projectId, costCode, qty, remoteQty),
+                    )
+                    db.execSQL("UPDATE outbox SET status = 'CONFLICT' WHERE id = ?", arrayOf(id))
+                    conflicts++
+                    return@forEach
+                }
                 remote.upsertProjectItem(projectId, costCode, qty)
                 db.execSQL("UPDATE outbox SET status = 'SYNCED' WHERE id = ?", arrayOf(id))
                 synced++

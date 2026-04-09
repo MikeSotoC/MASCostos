@@ -62,6 +62,12 @@ fun Application.module() {
             if (!created) return@post call.respond(HttpStatusCode.BadRequest, mapOf("error" to "No se pudo crear usuario"))
             call.respond(HttpStatusCode.Created)
         }
+        get("/auth/audit") {
+            val user = authorizeCall(call, auth, Permission.ADMIN) ?: return@get call.respond(HttpStatusCode.Forbidden)
+            val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 200
+            auth.audit(user, "/auth/audit", "LIST_AUDIT")
+            call.respond(auth.listAudit(limit))
+        }
 
         route("/projects") {
             get {

@@ -10,6 +10,7 @@ data class LoginResponse(val token: String, val role: String)
 data class UserContext(val username: String, val role: String)
 data class UserRecord(val username: String, val role: String)
 data class CreateUserRequest(val username: String, val password: String, val role: String)
+data class AuditRecord(val username: String, val role: String, val endpoint: String, val action: String, val createdAt: String)
 
 class AuthSecurityStore {
     private val sessions = ConcurrentHashMap<String, UserContext>()
@@ -80,6 +81,27 @@ class AuthSecurityStore {
             ps.setString(3, role.trim().lowercase())
             ps.executeUpdate() > 0
         }
+    }
+
+    fun listAudit(limit: Int = 200): List<AuditRecord> {
+        val list = mutableListOf<AuditRecord>()
+        conn.prepareStatement(
+            "SELECT username, role, endpoint, action, created_at FROM audit_logs ORDER BY id DESC LIMIT ?",
+        ).use { ps ->
+            ps.setInt(1, limit.coerceIn(1, 1000))
+            ps.executeQuery().use { rs ->
+                while (rs.next()) {
+                    list += AuditRecord(
+                        username = rs.getString(1),
+                        role = rs.getString(2),
+                        endpoint = rs.getString(3),
+                        action = rs.getString(4),
+                        createdAt = rs.getString(5),
+                    )
+                }
+            }
+        }
+        return list
     }
 
     private fun ensureSchema() {
