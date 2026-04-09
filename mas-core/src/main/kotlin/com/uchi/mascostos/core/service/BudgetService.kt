@@ -43,6 +43,16 @@ class BudgetService(
         require(quantity > 0) { "La cantidad debe ser mayor a cero" }
         require(quantity <= 1_000_000) { "La cantidad supera el límite permitido" }
         require(costCatalogRepository.findByCodes(setOf(costCode)).isNotEmpty()) { "Código de costo inválido: $costCode" }
+        val catalogItem = budgetStructureRepository.listCatalogByProject(projectId).firstOrNull { it.costCode == costCode }
+            ?: error("No se encontró la partida $costCode en la estructura del proyecto.")
+        val blockedCodes = System.getenv("MASCOSTOS_BLOCKED_CODES")
+            ?.split(",")
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?.toSet()
+            ?: emptySet()
+        val issues = DomainValidationEngine.validateItemInput(projectId, quantity, catalogItem, blockedCodes)
+        require(issues.isEmpty()) { issues.joinToString(" ") { "[${it.code}] ${it.message}" } }
         projectItemRepository.addItem(projectId = projectId, code = costCode, quantity = quantity)
     }
 

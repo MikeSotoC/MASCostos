@@ -92,6 +92,7 @@ class MainActivity : ComponentActivity() {
                 var selectedScreen by remember { mutableStateOf(0) }
 
                 fun saveCache(projectId: String?) {
+                    if (!runtimeConfig.useRemote) return
                     prefs.edit()
                         .putString("projects", gson.toJson(projects))
                         .putString("budgets", gson.toJson(budgets))
@@ -101,6 +102,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 fun loadCache() {
+                    if (!runtimeConfig.useRemote) return
                     val projectType = object : TypeToken<List<ProjectRef>>() {}.type
                     val budgetType = object : TypeToken<List<BudgetOption>>() {}.type
                     val catalogType = object : TypeToken<List<BudgetCatalogItem>>() {}.type

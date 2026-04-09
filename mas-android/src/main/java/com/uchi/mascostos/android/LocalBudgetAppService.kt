@@ -79,11 +79,28 @@ class LocalBudgetAppService(context: Context) : BudgetAppService {
     }
 
     override fun upsertProjectItem(projectId: String, costCode: String, quantity: Double) {
+        val previous = db.rawQuery(
+            "SELECT quantity, version FROM project_items WHERE project_id = ? AND cost_code = ?",
+            arrayOf(projectId, costCode),
+        ).use { c ->
+            if (c.moveToFirst()) c.getDouble(0) to c.getInt(1) else null
+        }
+        val nextVersion = (previous?.second ?: 0) + 1
         db.execSQL(
-            "INSERT INTO project_items(project_id, cost_code, quantity) VALUES (?, ?, ?) " +
-                "ON CONFLICT(project_id, cost_code) DO UPDATE SET quantity = excluded.quantity",
-            arrayOf(projectId, costCode, quantity),
+            "INSERT INTO project_items(project_id, cost_code, quantity, version) VALUES (?, ?, ?, ?) " +
+                "ON CONFLICT(project_id, cost_code) DO UPDATE SET quantity = excluded.quantity, version = excluded.version",
+            arrayOf(projectId, costCode, quantity, nextVersion),
         )
+        db.execSQL(
+            "INSERT INTO outbox(project_id, cost_code, quantity, operation, client_version, status, created_at) VALUES (?, ?, ?, 'UPSERT_ITEM', ?, 'PENDING', strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
+            arrayOf(projectId, costCode, quantity, nextVersion),
+        )
+        if (previous != null && previous.first != quantity) {
+            db.execSQL(
+                "INSERT INTO conflicts(project_id, cost_code, local_quantity, attempted_quantity, detected_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
+                arrayOf(projectId, costCode, previous.first, quantity),
+            )
+        }
     }
 
     override fun exportProjectCsv(projectId: String, outputPath: Path): Path {
@@ -106,7 +123,7 @@ class LocalBudgetAppService(context: Context) : BudgetAppService {
     }
 }
 
-private class LocalDb(context: Context) : SQLiteOpenHelper(context, "mascostos_local.db", null, 1) {
+private class LocalDb(context: Context) : SQLiteOpenHelper(context, "mascostos_local.db", null, 2) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("CREATE TABLE projects(id TEXT PRIMARY KEY, name TEXT NOT NULL, location TEXT)")
         db.execSQL(
@@ -115,7 +132,15 @@ private class LocalDb(context: Context) : SQLiteOpenHelper(context, "mascostos_l
         )
         db.execSQL(
             "CREATE TABLE project_items(" +
-                "project_id TEXT NOT NULL, cost_code TEXT NOT NULL, quantity REAL NOT NULL, PRIMARY KEY(project_id, cost_code))"
+                "project_id TEXT NOT NULL, cost_code TEXT NOT NULL, quantity REAL NOT NULL, version INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(project_id, cost_code))"
+        )
+        db.execSQL(
+            "CREATE TABLE outbox(" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, cost_code TEXT NOT NULL, quantity REAL NOT NULL, operation TEXT NOT NULL, client_version INTEGER NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL)"
+        )
+        db.execSQL(
+            "CREATE TABLE conflicts(" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, cost_code TEXT NOT NULL, local_quantity REAL NOT NULL, attempted_quantity REAL NOT NULL, detected_at TEXT NOT NULL)"
         )
         db.execSQL(
             "INSERT INTO catalog(cost_code, title_id, title_name, description, unit, unit_cost) VALUES " +
@@ -125,5 +150,17 @@ private class LocalDb(context: Context) : SQLiteOpenHelper(context, "mascostos_l
         )
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE project_items ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS outbox(" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, cost_code TEXT NOT NULL, quantity REAL NOT NULL, operation TEXT NOT NULL, client_version INTEGER NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL)"
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS conflicts(" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, cost_code TEXT NOT NULL, local_quantity REAL NOT NULL, attempted_quantity REAL NOT NULL, detected_at TEXT NOT NULL)"
+            )
+        }
+    }
 }

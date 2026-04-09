@@ -49,6 +49,9 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 20. **Cache local básica Android**: snapshot JSON en `SharedPreferences` para arranque con datos offline.
 21. **Modo local-first**: Android y Desktop trabajan con SQLite local; remoto queda como opción de integración.
 22. **UI profesional por secciones**: Android y Desktop dejaron el flujo de “pantalla única” y ahora separan navegación por etapas (Proyectos / Catálogo / Ítems-Reportes).
+23. **Offline Android versionado**: tablas locales con versionado, outbox de operaciones pendientes y registro básico de conflictos.
+24. **Seguridad backend E2E**: login real (`/auth/login`), roles persistidos por usuario y auditoría de acciones.
+25. **Reglas de negocio avanzadas**: motor de validaciones por rubro/tipo con mensajes funcionales.
 
 ## Sistema de configuraciones (Android + Windows/Desktop)
 
@@ -66,9 +69,9 @@ Base inicial de una app de presupuestos **similar a Delphin Express** (sin BIM p
 ## Falta implementar
 
 - Completar tokens visuales y tematización profunda (modo oscuro, tipografía de marca, componentes dedicados).
-- Evolucionar la caché local Android (actualmente snapshot JSON) a almacenamiento estructurado (Room/SQLDelight).
+- Evolucionar almacenamiento local Android hacia Room/SQLDelight (hoy ya existe esquema SQLite versionado + outbox + conflictos).
 - Evolucionar plugins formales a un manifiesto firmado con validación criptográfica real.
-- Completar reglas avanzadas por tipo de partida, costos bloqueados y controles por usuario/rol.
+- Profundizar reglas avanzadas por tipo de partida y políticas por organización/proyecto.
 - Sincronización bidireccional de metrado con tablas de metrado nativas.
 
 ## Siguiente acción recomendada
